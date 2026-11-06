@@ -1,0 +1,17 @@
+{
+  "name": "kup-arena",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Küp Arena: paket aç, küp topla, savaş, çöz.",
+  "scripts": {
+    "start": "npx http-server www -p 8080 -c-1",
+    "android:sync": "npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}
