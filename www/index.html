@@ -6,9 +6,6 @@
 <title>Küp Arena</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#1a0f3a">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Nunito:wght@500;700;800;900&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,19 +13,71 @@
   <header class="top">
     <div class="brand">Küp<span>Arena</span></div>
     <div class="wallet">
-      <span class="chip" title="Kupa"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v3h3v3a4 4 0 0 1-4 4h-.4A5 5 0 0 1 13 15.9V18h3v3H8v-3h3v-2.1A5 5 0 0 1 8.4 13H8a4 4 0 0 1-4-4V6h3V3Zm0 5H6v1a2 2 0 0 0 1 1.7V8Zm10 0v2.7A2 2 0 0 0 18 9V8h-1Z" fill="#ffd23f"/></svg><b id="trophies">0</b></span>
+      <button class="hbtn" id="quest-btn" aria-label="Günlük görevler"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12v4h-2V4H8v16h8v-2h2v4H6V2Zm4 5h8v2h-8V7Zm0 4h10v2H10v-2Zm0 4h6v2h-6v-2Z"/></svg></button>
+      <button class="lvl" id="lvl-btn" aria-label="Profil ve başarımlar"><span id="lvl-num">1</span></button>
       <span class="chip" title="Jeton"><i class="coin" aria-hidden="true"></i><b id="coins">0</b></span>
     </div>
   </header>
 
-  <main>
-    <!-- MAĞAZA -->
-    <section class="tab" id="tab-shop">
-      <div class="gift" id="gift">
-        <div><h2>Günlük hediye</h2><p id="gift-text">150 jeton seni bekliyor.</p></div>
-        <button class="btn btn-yellow" id="gift-btn">Al</button>
+  <main id="main">
+    <!-- MACERA -->
+    <section class="tab" id="tab-adv">
+      <div class="sec-head">
+        <h2 class="sec-title">Macera</h2>
+        <span class="star-total">★ <b id="adv-stars">0</b></span>
       </div>
-      <h2 class="sec-title">Paketler</h2>
+      <div class="worlds" id="worlds"></div>
+      <div class="tower" id="tower"></div>
+    </section>
+
+    <!-- ARENA -->
+    <section class="tab" id="tab-arena" hidden>
+      <h2 class="sec-title">Arena</h2>
+      <div class="league" id="league"></div>
+      <div class="vs-card">
+        <div class="side">
+          <span class="label">Takımın</span>
+          <div class="mini-row" id="my-team"></div>
+        </div>
+        <div class="vs">VS</div>
+        <div class="side">
+          <span class="label" id="opp-name">Rakip</span>
+          <span class="opp-tr" id="opp-tr"></span>
+          <div class="mini-row" id="opp-team"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="opp-new">Rakip değiştir</button>
+        <button class="btn btn-pink btn-big" id="fight">Savaşa başla</button>
+      </div>
+      <button class="pvp-card" id="pvp-btn">
+        <span><b>Arkadaşınla oyna</b><small>Aynı telefonda 2 kişilik maç</small></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm8 0a4 4 0 1 1 0-8 4 4 0 0 1 0 8ZM2 20c0-3.3 2.7-6 6-6s6 2.7 6 6H2Zm12.6 0a7.9 7.9 0 0 0-2-5.3A6 6 0 0 1 22 20h-7.4Z"/></svg>
+      </button>
+      <h3 class="sub-title">Sıralama</h3>
+      <ol class="rank" id="rank"></ol>
+      <p class="note">Şimdilik rakipler bilgisayar oyuncuları; çevrimiçi sıralama sunucu bağlanınca gelecek.</p>
+    </section>
+
+    <!-- MAĞAZA -->
+    <section class="tab" id="tab-shop" hidden>
+      <h2 class="sec-title">Mağaza</h2>
+      <div class="freebies">
+        <div class="gift">
+          <div><h3>Günlük hediye</h3><p id="gift-text"></p></div>
+          <button class="btn btn-yellow" id="gift-btn">Al</button>
+        </div>
+        <div class="gift free">
+          <div><h3>Bedava paket</h3><p id="free-text"></p></div>
+          <button class="btn btn-yellow" id="free-btn">Aç</button>
+        </div>
+      </div>
+      <div id="owned-wrap" hidden>
+        <h3 class="sub-title">Paketlerin</h3>
+        <div class="owned-row" id="owned-packs"></div>
+      </div>
+      <div class="deal" id="deal"></div>
+      <h3 class="sub-title">Paketler</h3>
       <div class="packs" id="packs"></div>
       <p class="note">Her paketten 1 bulmaca çıkar. Aynı bulmaca tekrar çıkarsa seviyesi yükselir.</p>
     </section>
@@ -40,58 +89,28 @@
         <span class="progress" id="inv-progress"></span>
       </div>
       <div class="team-strip">
-        <span class="label">Savaş takımı</span>
+        <span class="label">Savaş takımı (en fazla 3)</span>
         <div class="team-slots" id="team-slots"></div>
+      </div>
+      <div class="sec-head">
+        <div class="seg" id="inv-filter" role="group" aria-label="Türe göre süz">
+          <button data-f="all" aria-pressed="true">Hepsi</button>
+          <button data-f="kup" aria-pressed="false">Küp</button>
+          <button data-f="piramit" aria-pressed="false">Piramit</button>
+          <button data-f="ozel" aria-pressed="false">Özel</button>
+        </div>
+        <button class="btn btn-small" id="sell-all">Fazlaları sat</button>
       </div>
       <div class="grid" id="inv-grid"></div>
     </section>
 
-    <!-- SAVAŞ -->
-    <section class="tab" id="tab-battle" hidden>
-      <div id="lobby">
-        <h2 class="sec-title">Savaş</h2>
-        <div class="vs-card">
-          <div class="side">
-            <span class="label">Takımın</span>
-            <div class="mini-row" id="my-team"></div>
-          </div>
-          <div class="vs">VS</div>
-          <div class="side">
-            <span class="label" id="opp-name">Rakip</span>
-            <span class="opp-tr" id="opp-tr"></span>
-            <div class="mini-row" id="opp-team"></div>
-          </div>
-        </div>
-        <div class="btn-row">
-          <button class="btn" id="opp-new">Rakip değiştir</button>
-          <button class="btn btn-pink btn-big" id="fight">Savaşa başla</button>
-        </div>
-        <p class="note">Takımını Envanter’den düzenle (en fazla 3 bulmaca). Kazanırsan jeton ve kupa alırsın.</p>
-      </div>
-      <div id="arena" hidden>
-        <div class="fighter enemy" id="f-enemy"></div>
-        <div class="blog" id="blog" aria-live="polite"></div>
-        <div class="fighter me" id="f-me"></div>
-        <div class="btn-row">
-          <button class="btn btn-big" id="act-atk">Saldır</button>
-          <button class="btn btn-pink btn-big" id="act-skill">Yetenek</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- SIRALAMA -->
-    <section class="tab" id="tab-rank" hidden>
-      <div class="sec-head">
-        <h2 class="sec-title">Sıralama</h2>
-        <button class="btn btn-small" id="rename">Adını değiştir</button>
-      </div>
-      <div class="me-card" id="me-card"></div>
-      <ol class="rank" id="rank"></ol>
-      <p class="note">Şimdilik rakipler bilgisayar oyuncuları. Çevrimiçi sıralama sunucu bağlanınca gelecek.</p>
-    </section>
-
     <!-- ÇÖZ -->
     <section class="tab tab-solve" id="tab-solve" hidden>
+      <div class="chal" id="chal" hidden>
+        <div><b id="chal-title"></b><small id="chal-goal"></small></div>
+        <button class="btn btn-small" id="chal-exit">Vazgeç</button>
+      </div>
+      <div class="daily" id="daily"></div>
       <div class="solve-head">
         <div class="pick" id="solve-pick"></div>
         <div class="sim-stats">
@@ -121,12 +140,31 @@
   </main>
 
   <nav class="tabs" id="tabs">
-    <button data-tab="shop" aria-current="page"><svg viewBox="0 0 24 24"><path d="M5 3h14l-1 3 1 3-1 3 1 3-1 3 1 3H5l1-3-1-3 1-3-1-3 1-3-1-3Z"/></svg>Mağaza</button>
+    <button data-tab="adv" aria-current="page"><svg viewBox="0 0 24 24"><path d="m9 3 6 2 6-2v16l-6 2-6-2-6 2V5l6-2Zm1 2.4v12.2l4 1.3V6.7l-4-1.3Z"/></svg>Macera</button>
+    <button data-tab="arena"><svg viewBox="0 0 24 24"><path d="M3 3h4l8 8-2 2-8-8V3Zm18 0v4l-5 5-2-2 5-5 2-2ZM4 17l3-3 3 3-3 3-3-3Zm10 0 3-3 3 3-3 3-3-3Zm-3-2 2 2-2 2-2-2 2-2Z"/></svg>Arena</button>
+    <button data-tab="shop"><svg viewBox="0 0 24 24"><path d="M5 3h14l-1 3 1 3-1 3 1 3-1 3 1 3H5l1-3-1-3 1-3-1-3 1-3-1-3Z"/></svg>Mağaza</button>
     <button data-tab="inv"><svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>Envanter</button>
-    <button data-tab="battle"><svg viewBox="0 0 24 24"><path d="M3 3h4l8 8-2 2-8-8V3Zm18 0v4l-5 5-2-2 5-5 2-2ZM4 17l3-3 3 3-3 3-3-3Zm10 0 3-3 3 3-3 3-3-3Zm-3-2 2 2-2 2-2-2 2-2Z"/></svg>Savaş</button>
-    <button data-tab="rank"><svg viewBox="0 0 24 24"><path d="M9 4h6v17H9zM2 10h6v11H2zM16 13h6v8h-6z"/></svg>Sıralama</button>
     <button data-tab="solve"><svg viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7l9-5Zm0 2.3L5.3 8 12 11.7 18.7 8 12 4.3Z"/></svg>Çöz</button>
   </nav>
+</div>
+
+<!-- Savaş ekranı -->
+<div class="bscreen" id="battle" hidden>
+  <div class="b-top">
+    <span id="b-title"></span>
+    <div class="b-tools">
+      <button class="btn btn-small" id="b-auto">Oto: Kapalı</button>
+      <button class="btn btn-small" id="b-quit">Pes et</button>
+    </div>
+  </div>
+  <div class="b-side enemy" id="b-B"></div>
+  <div class="blog" id="blog" aria-live="polite"></div>
+  <div class="b-side me" id="b-A"></div>
+  <div class="b-turn" id="b-turn"></div>
+  <div class="b-acts">
+    <button class="btn btn-big" id="act-atk">Saldır<small>Normal hasar</small></button>
+    <button class="btn btn-pink btn-big" id="act-skill">Yetenek</button>
+  </div>
 </div>
 
 <!-- Paket açma -->
@@ -160,7 +198,14 @@
 <script src="vendor/three.min.js"></script>
 <script src="js/data.js"></script>
 <script src="js/render.js"></script>
+<script src="js/sound.js"></script>
 <script src="js/sim.js"></script>
-<script src="js/app.js"></script>
+<script src="js/core.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/adventure.js"></script>
+<script src="js/shop.js"></script>
+<script src="js/arena.js"></script>
+<script src="js/solve.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>

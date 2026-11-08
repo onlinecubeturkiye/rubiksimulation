@@ -4,6 +4,9 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,16 +28,41 @@ jobs:
       - name: Create Android project
         run: |
           npx cap add android
+          npx capacitor-assets generate --android --iconBackgroundColor "#1a0f3a" --splashBackgroundColor "#1a0f3a"
           npx cap sync android
+
+      - name: Set version
+        run: |
+          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"2.0.${{ github.run_number }}\"/" android/app/build.gradle
+
+      # Sabit debug anahtarı: yeni sürümler eskisinin üstüne kurulur, ilerleme silinmez.
+      - name: Use fixed debug key
+        run: |
+          mkdir -p ~/.android
+          cp signing/debug.keystore ~/.android/debug.keystore
 
       - name: Build debug APK
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../KupArena.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: kup-arena-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: KupArena.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v2.0.${{ github.run_number }}
+          name: Küp Arena 2.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          files: KupArena.apk
+          body: |
+            Telefona kurmak için aşağıdaki **KupArena.apk** dosyasını indir ve aç.
+            İlk kurulumda "bilinmeyen kaynaklardan yükleme" izni istenebilir.

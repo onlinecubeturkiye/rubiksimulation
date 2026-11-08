@@ -95,5 +95,78 @@
     ['Miray', 160], ['Ozan', 120], ['Duru', 85], ['Kaan', 50], ['Yeni_Başlayan', 20],
   ].map(([name, tr]) => ({ name, tr }));
 
-  window.GameData = { RARITIES, RARITY_ORDER, PALETTES, SKILLS, CUBES, PACKS, BOTS };
+  // Tür avantajı: Küp > Piramit > Özel > Küp
+  const TYPE_OF = { cube: 'kup', pyramid: 'piramit', mega: 'ozel', skewb: 'ozel', mirror: 'ozel' };
+  const TYPES = {
+    kup:     { name: 'Küp',     beats: 'piramit', color: '#ffd23f' },
+    piramit: { name: 'Piramit', beats: 'ozel',    color: '#3ee08f' },
+    ozel:    { name: 'Özel',    beats: 'kup',     color: '#2ee6ff' },
+  };
+
+  // Macera dünyaları. Her dünyada 6 bölüm: savaş, savaş, çözme, savaş, savaş, boss.
+  const WORLDS = [
+    { id: 'w1', name: 'Oyuncak Kasabası', desc: 'Renkli sokaklarda ilk adımların.', pal: 'pastel',
+      bg: 'linear-gradient(170deg,#ff9ec7,#ffcf6b 60%,#7fe0b0)', ink: '#3a1030',
+      pool: ['c2', 'c3', 'p2', 'c2p', 'c3p'], base: 1, mult: 0.75,
+      solve: { n: 2, depth: 2 }, boss: { id: 'c3p', name: 'Kasaba Bekçisi' }, reward: 'sk' },
+    { id: 'w2', name: 'Buz Vadisi', desc: 'Donmuş göller, kaygan küpler.', pal: 'ice',
+      bg: 'linear-gradient(170deg,#bfeaff,#5aa9ff 60%,#3b4fd1)', ink: '#0b2350',
+      pool: ['c3i', 'c2', 'c3', 'c4', 'p2'], base: 2, mult: 0.9,
+      solve: { n: 3, depth: 3 }, boss: { id: 'c4i', name: 'Buz Devi' }, reward: 'c4i' },
+    { id: 'w3', name: 'Ateş Dağı', desc: 'Lavların arasında sıcak savaşlar.', pal: 'fire',
+      bg: 'linear-gradient(170deg,#ffd000,#ff5a1f 55%,#8a0f0f)', ink: '#3a0a00',
+      pool: ['c2f', 'c3n', 'p3', 'sk', 'c4'], base: 3, mult: 1.0,
+      solve: { n: 3, depth: 4 }, boss: { id: 'c3f', name: 'Lav Ejderi' }, reward: 'c3f' },
+    { id: 'w4', name: 'Altın Çöl', desc: 'Kumların altında altın sırlar.', pal: 'gold',
+      bg: 'linear-gradient(170deg,#fff0a8,#e8b84a 55%,#8a5a12)', ink: '#3a2400',
+      pool: ['p3', 'p4', 'mr', 'c5', 'mg'], base: 5, mult: 1.05,
+      solve: { n: 4, depth: 4 }, boss: { id: 'c3g', name: 'Çöl Firavunu' }, reward: 'c3g' },
+    { id: 'w5', name: 'Galaksi Kalesi', desc: 'Yıldızların arasında bir kale.', pal: 'galaxy',
+      bg: 'linear-gradient(170deg,#8b5cff,#3434a8 55%,#0d0820)', ink: '#ffffff',
+      pool: ['mg', 'c6', 'p4', 'c4i', 'c5'], base: 6, mult: 1.1,
+      solve: { n: 3, depth: 6 }, boss: { id: 'c5g', name: 'Yıldız Lordu' }, reward: 'c5g' },
+    { id: 'w6', name: 'Kaos Boyutu', desc: 'Her şeyin karıştığı son durak.', pal: 'void',
+      bg: 'linear-gradient(170deg,#ec4899,#4338ca 50%,#000000)', ink: '#ffffff',
+      pool: ['c7', 'mgr', 'c6', 'c5g', 'p3d'], base: 8, mult: 1.2,
+      solve: { n: 4, depth: 6 }, boss: { id: 'c5v', name: 'Kaos Ustası' }, reward: 'c3c' },
+  ];
+
+  // Günlük görevler: her gün bu havuzdan 3 tane seçilir. İlerleme, sayaçların gün başındaki değerine göre ölçülür.
+  const QUESTS = [
+    { id: 'pack',    text: '2 paket aç',               stat: 'packs',    target: 2, reward: 80 },
+    { id: 'win',     text: '3 savaş kazan',            stat: 'wins',     target: 3, reward: 120 },
+    { id: 'solve',   text: '1 küp çöz',                stat: 'solves',   target: 1, reward: 100 },
+    { id: 'skill',   text: '5 yetenek kullan',         stat: 'skills',   target: 5, reward: 60 },
+    { id: 'stage',   text: '2 macera bölümü geç',      stat: 'stages',   target: 2, reward: 100 },
+    { id: 'upgrade', text: 'Bir bulmacayı güçlendir',  stat: 'upgrades', target: 1, reward: 80 },
+    { id: 'tower',   text: 'Kulede 3 kat çık',         stat: 'floors',   target: 3, reward: 120 },
+    { id: 'arena',   text: 'Arenada 2 maç yap',        stat: 'arena',    target: 2, reward: 90 },
+  ];
+
+  const ACHIEVEMENTS = [
+    { id: 'col5',    name: 'Koleksiyoncu',       desc: '5 farklı bulmaca topla',       stat: 'collection', target: 5,  reward: 100 },
+    { id: 'col15',   name: 'Müze Sahibi',        desc: '15 farklı bulmaca topla',      stat: 'collection', target: 15, reward: 300 },
+    { id: 'colAll',  name: 'Tam Koleksiyon',     desc: '26 bulmacanın hepsini topla',  stat: 'collection', target: 26, reward: 1500 },
+    { id: 'world1',  name: 'Kasabanın Kahramanı', desc: 'İlk dünyayı bitir',           stat: 'worlds',     target: 1,  reward: 100 },
+    { id: 'world3',  name: 'Kaşif',              desc: '3 dünyayı bitir',              stat: 'worlds',     target: 3,  reward: 300 },
+    { id: 'worldAll',name: 'Kaosu Yenen',        desc: '6 dünyanın hepsini bitir',     stat: 'worlds',     target: 6,  reward: 1000 },
+    { id: 'stars30', name: 'Yıldız Toplayıcı',   desc: 'Macerada 30 yıldız topla',     stat: 'stars',      target: 30, reward: 300 },
+    { id: 'starsAll',name: 'Kusursuz',           desc: 'Macerada 108 yıldızın hepsi',  stat: 'stars',      target: 108, reward: 1000 },
+    { id: 'win10',   name: 'Savaşçı',            desc: '10 savaş kazan',               stat: 'wins',       target: 10, reward: 150 },
+    { id: 'win50',   name: 'Arena Efsanesi',     desc: '50 savaş kazan',               stat: 'wins',       target: 50, reward: 500 },
+    { id: 'tr1000',  name: 'Kupa Avcısı',        desc: 'Arenada 1000 kupaya ulaş',     stat: 'trophies',   target: 1000, reward: 400 },
+    { id: 'tower10', name: 'Kule Tırmanıcısı',   desc: 'Sonsuz Kule’de 10. kata çık',  stat: 'towerBest',  target: 10, reward: 200 },
+    { id: 'tower30', name: 'Gökdelen',           desc: 'Sonsuz Kule’de 30. kata çık',  stat: 'towerBest',  target: 30, reward: 600 },
+    { id: 'solve1',  name: 'İlk Çözüm',          desc: 'Karışık bir küpü çöz',         stat: 'solves',     target: 1,  reward: 50 },
+    { id: 'solve10', name: 'Çözücü',             desc: '10 küp çöz',                   stat: 'solves',     target: 10, reward: 250 },
+    { id: 'big5',    name: 'Dev Avcısı',         desc: '5×5 veya daha büyük bir küpü çöz', stat: 'bigSolve', target: 1, reward: 300 },
+    { id: 'sub120',  name: 'Hızlı Eller',        desc: '3×3’ü 2 dakikanın altında çöz', stat: 'fast3',     target: 1,  reward: 300 },
+    { id: 'sub60',   name: 'Şimşek',             desc: '3×3’ü 1 dakikanın altında çöz', stat: 'flash3',    target: 1,  reward: 600 },
+    { id: 'mythic',  name: 'Mitik Şans',         desc: 'Bir Mitik bulmaca bul',        stat: 'mythics',    target: 1,  reward: 300 },
+    { id: 'max10',   name: 'Usta Eğitmen',       desc: 'Bir bulmacayı seviye 10 yap',  stat: 'maxLevel',   target: 10, reward: 400 },
+    { id: 'packs50', name: 'Paket Tutkunu',      desc: '50 paket aç',                  stat: 'packs',      target: 50, reward: 300 },
+    { id: 'pvp1',    name: 'Dostluk Maçı',       desc: 'Arkadaşınla aynı telefonda oyna', stat: 'pvp',     target: 1,  reward: 100 },
+  ];
+
+  window.GameData = { RARITIES, RARITY_ORDER, PALETTES, SKILLS, CUBES, PACKS, BOTS, TYPE_OF, TYPES, WORLDS, QUESTS, ACHIEVEMENTS };
 })();

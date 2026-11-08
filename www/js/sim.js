@@ -160,22 +160,24 @@
     addTrail('↶');
     refresh();
   }
-  function scramble() {
+  function scramble(len, rng, outerOnly) {
     if (busy()) return;
-    const len = Math.round(10 + N * N * 1.5);
+    if (challenge && !len) return restartChallenge();
+    rng = rng || Math.random;
+    len = len || Math.round(10 + N * N * 1.5);
     const axes = ['x', 'y', 'z'];
     let last = null;
     for (let i = 0; i < len; i++) {
       let m;
       do {
-        const axis = axes[(Math.random() * 3) | 0];
-        let layer = ((Math.random() * N) | 0) - O;
-        if (N === 3 && Math.abs(layer) < 0.01) layer = (Math.random() < 0.5 ? 1 : -1) * O;
-        m = { axis, layer, dir: Math.random() < 0.5 ? 1 : -1 };
+        const axis = axes[(rng() * 3) | 0];
+        let layer = outerOnly ? (rng() < 0.5 ? 1 : -1) * O : ((rng() * N) | 0) - O;
+        if (N === 3 && Math.abs(layer) < 0.01) layer = (rng() < 0.5 ? 1 : -1) * O;
+        m = { axis, layer, dir: rng() < 0.5 ? 1 : -1 };
       } while (last && last.axis === m.axis && Math.abs(last.layer - m.layer) < 0.01);
       last = m;
       history.push(m);
-      queue.push({ ...m, kind: 'scramble', dur: reduced ? 0 : Math.max(25, 60 - N * 5) });
+      queue.push({ ...m, kind: 'scramble', dur: reduced ? 0 : (outerOnly ? 220 : Math.max(25, 60 - N * 5)) });
     }
     userMoves = []; moveCount = 0; elapsed = 0;
     setTrail([]);
@@ -183,6 +185,7 @@
     refresh();
   }
   function solve() {
+    if (challenge) return hint();
     if (busy() || !history.length) return;
     const seq = history.slice().reverse().map(inverse);
     const dur = reduced ? 0 : Math.max(30, Math.min(150, 3500 / seq.length));
@@ -191,6 +194,30 @@
     setPhase('solving');
     refresh();
   }
+  // İpucu: son hamleyi geri çeviren doğru hamleyi yapar.
+  function hint() {
+    if (busy() || !history.length || phase === 'solved') return;
+    const m = history.pop();
+    if (userMoves.length) userMoves.pop();
+    moveCount++; hints++;
+    if (phase === 'ready') { setPhase('timing'); t0 = performance.now(); }
+    queue.push({ ...inverse(m), kind: 'user', dur: SPEED });
+    addTrail('?');
+    refresh();
+  }
+  let challenge = null, hints = 0;
+  function restartChallenge() {
+    const c = challenge;
+    reset(c.n);
+    hints = 0;
+    scramble(c.depth, seeded(c.seed), true);
+  }
+  function seeded(seed) {
+    let a = seed >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  Sim.seeded = seeded;
+
   function reset(n = N) {
     queue.length = 0;
     if (anim) { root.remove(anim.pivot); anim = null; }
@@ -208,7 +235,7 @@
     elapsed = performance.now() - t0;
     setPhase('solved');
     refresh();
-    if (Sim.onSolved) Sim.onSolved({ n: N, ms: elapsed, moves: moveCount });
+    if (Sim.onSolved) Sim.onSolved({ n: N, ms: elapsed, moves: moveCount, hints, challenge: challenge && challenge.id });
   }
 
   const STATUS = {
@@ -232,14 +259,17 @@
     $('sim-undo').disabled = b || !userMoves.length;
     $('sim-solve').disabled = b || !history.length;
     $('sim-scramble').disabled = b;
+    $('sim-solve').textContent = challenge ? 'İpucu' : 'Otomatik çöz';
+    $('sim-scramble').textContent = challenge ? 'Baştan' : 'Karıştır';
+    if (challenge) $('sim-solve').disabled = b || !history.length || phase === 'solved';
     if (Sim.onChange) Sim.onChange(phase);
   }
 
   $('sim-pad').addEventListener('click', e => { const b = e.target.closest('button'); if (b) userTurn(parseMove(b.dataset.move)); });
-  $('sim-scramble').onclick = scramble;
+  $('sim-scramble').onclick = () => scramble();
   $('sim-undo').onclick = undo;
   $('sim-solve').onclick = solve;
-  $('sim-reset').onclick = () => reset();
+  $('sim-reset').onclick = () => (challenge ? restartChallenge() : reset());
   window.addEventListener('keydown', e => {
     if (!Sim.active || e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.toUpperCase();
@@ -326,12 +356,24 @@
     requestAnimationFrame(loop);
   }
 
-  Sim.load = function (n, pal) {
+  function paint(pal) {
     FACES.forEach(f => stickerMats[f.key].color.set(pal[f.key]));
     bodyMat.color.set(pal.body);
+  }
+  Sim.load = function (n, pal) {
+    challenge = null;
+    paint(pal);
     reset(n);
     resize();
   };
+  // Meydan okuma: belli sayıda dış katman hamlesiyle (aynı tohumla hep aynı) karıştırılmış küp.
+  Sim.challenge = function (cfg) {
+    challenge = cfg;
+    paint(cfg.pal);
+    resize();
+    restartChallenge();
+  };
+  Sim.inChallenge = () => !!challenge;
   Sim.resize = resize;
   Sim.isBusy = () => busy() || phase === 'timing';
   Sim.load(3, window.GameData.PALETTES.classic);

@@ -1,17 +1,20 @@
 {
   "name": "kup-arena",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Küp Arena: paket aç, küp topla, savaş, çöz.",
   "scripts": {
     "start": "npx http-server www -p 8080 -c-1",
-    "android:sync": "npx cap sync android"
+    "android:sync": "npx cap sync android",
+    "android:assets": "npx capacitor-assets generate --android --iconBackgroundColor \"#1a0f3a\" --splashBackgroundColor \"#1a0f3a\""
   },
   "dependencies": {
     "@capacitor/android": "^6.1.2",
-    "@capacitor/core": "^6.1.2"
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/app": "^6.0.1"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.1.2"
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/assets": "^3.0.5"
   }
 }
