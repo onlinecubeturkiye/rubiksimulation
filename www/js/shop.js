@@ -79,17 +79,22 @@
 
     // Satılık paketler
     const wrap = $('packs'); wrap.innerHTML = '';
+    $('brand-packs').innerHTML = '';
     D.PACKS.forEach(p => {
-      const card = h('div', 'pack-card');
+      const card = h('div', 'pack-card' + (p.brand ? ' brand-box' : ''));
       const pk = makePack(p);
       card.appendChild(pk);
+      if (p.brand) {
+        const br = D.BRANDS[p.brand];
+        card.appendChild(h('div', 'brand-perk', `<b>${esc(br.tag)}</b><span>Avantaj: ${esc(br.perk)}</span>`));
+      }
       const odds = D.RARITY_ORDER.map((rr, i) => p.odds[i] ? `<b style="color:${D.RARITIES[rr].color}">${D.RARITIES[rr].name}</b> %${p.odds[i]}` : '').filter(Boolean).join(' · ');
       card.appendChild(h('div', 'odds', odds));
       const b = h('button', 'btn btn-yellow', `<i class="coin"></i>${p.price}`);
       b.setAttribute('aria-label', `${p.name} satın al, ${p.price} jeton`);
       b.onclick = () => buy(p);
       card.appendChild(b);
-      wrap.appendChild(card);
+      (p.brand ? $('brand-packs') : wrap).appendChild(card);
     });
   }
   G.renderShop = render;
@@ -208,7 +213,7 @@
     $('rays').style.setProperty('--ray', r.color);
     $('rays').className = 'rays on';
     $('rv-rarity').textContent = r.name;
-    $('rv-name').textContent = def.name;
+    $('rv-name').innerHTML = `${G.brandChip(def, 'big')}<span>${esc(def.model)}</span>`;
     const ty = D.TYPES[G.typeOf(def)];
     $('rv-sub').innerHTML = (got.isNew ? '<b class="good">YENİ!</b> Koleksiyonuna eklendi.' : `Tekrar geldi: <b>seviye ${got.lvl}</b> oldu.`) + ` · ${ty.name} · ${esc(D.SKILLS[def.skill].name)}`;
     rv.hidden = false;
@@ -239,7 +244,21 @@
   };
 
   // ---------- Envanter ----------
-  let filter = 'all';
+  let filter = 'all', brandFilter = 'all';
+  function renderBrandFilter() {
+    const S = G.S, row = $('brand-filter');
+    const btn = (id, label, color, extra) => `<button data-b="${id}" aria-pressed="${brandFilter === id}" style="--bc:${color}">${label}${extra || ''}</button>`;
+    row.innerHTML = btn('all', 'Tüm markalar', '#1d1446') + Object.entries(D.BRANDS).map(([id, b]) => {
+      const all = D.CUBES.filter(c => c.brand === id), got = all.filter(c => S.inv[c.id]).length;
+      return btn(id, b.name, b.color, ` <small>${got}/${all.length}</small>`);
+    }).join('');
+    const info = $('brand-info');
+    if (brandFilter === 'all') { info.hidden = true; return; }
+    const b = D.BRANDS[brandFilter];
+    info.hidden = false;
+    info.style.setProperty('--bc', b.color);
+    info.innerHTML = `<span class="bm big" style="--bc:${b.color}">${b.name}</span><div><b>${esc(b.tag)}</b><small>Avantaj: ${esc(b.perk)}</small></div>`;
+  }
   function renderInv() {
     const S = G.S;
     const owned = D.CUBES.filter(c => S.inv[c.id]).length;
@@ -248,16 +267,18 @@
     $('sell-all').textContent = dupes ? `Fazlaları sat (+${dupes})` : 'Fazla yok';
     $('sell-all').disabled = !dupes;
     renderTeamSlots();
+    renderBrandFilter();
     const grid = $('inv-grid'); grid.innerHTML = '';
     const list = D.CUBES.slice()
       .filter(c => filter === 'all' || G.typeOf(c) === filter)
+      .filter(c => brandFilter === 'all' || c.brand === brandFilter)
       .sort((a, b) => (S.inv[b.id] ? 1 : 0) - (S.inv[a.id] ? 1 : 0) || D.RARITIES[b.rarity].order - D.RARITIES[a.rarity].order || G.level(b.id) - G.level(a.id));
     list.forEach(def => {
       const have = S.inv[def.id] || 0;
       const card = h('button', 'card' + (have ? '' : ' locked') + (S.team.includes(def.id) ? ' in-team' : ''));
       card.style.setProperty('--rc', D.RARITIES[def.rarity].color);
       const ty = D.TYPES[G.typeOf(def)];
-      card.innerHTML = `<canvas></canvas><span class="nm">${have ? esc(def.name) : '???'}</span><span class="rr">${D.RARITIES[def.rarity].name}</span>` +
+      card.innerHTML = `<canvas></canvas>${have ? G.brandChip(def, 'sm') : ''}<span class="nm">${have ? esc(def.model) : '???'}</span><span class="rr">${D.RARITIES[def.rarity].name}</span>` +
         (have ? `<span class="lv">Sv ${G.level(def.id)}</span>${have > 1 ? `<span class="cnt">×${have}</span>` : ''}<span class="ty" style="background:${ty.color}">${ty.name}</span>` : '');
       if (have) card.onclick = () => openDetail(def);
       else card.disabled = true;
@@ -266,6 +287,10 @@
     });
   }
   G.renderInv = renderInv;
+  $('brand-filter').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    brandFilter = b.dataset.b; renderInv();
+  });
   $('inv-filter').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     filter = b.dataset.f;
@@ -289,7 +314,7 @@
     for (let i = 0; i < 3; i++) {
       const id = G.S.team[i];
       const def = id && cubeById(id);
-      const slot = h('button', 'slot' + (def ? ' filled' : ''), def ? `<canvas></canvas><span>${esc(def.name)}</span><small>Sv ${G.level(id)}</small>` : '<span>Boş yer</span>');
+      const slot = h('button', 'slot' + (def ? ' filled' : ''), def ? `<canvas></canvas>${G.brandChip(def, 'sm')}<span>${esc(def.model)}</span><small>Sv ${G.level(id)}</small>` : '<span>Boş yer</span>');
       if (def) { slot.onclick = () => openDetail(def); requestAnimationFrame(() => R.drawPuzzle(slot.querySelector('canvas'), def)); }
       else slot.disabled = true;
       wrap.appendChild(slot);
@@ -305,6 +330,7 @@
     const body = G.modal(def.name, `
       <div class="tags"><span class="rarity-tag" style="--glow:${r.color}">${r.name}</span><span class="rarity-tag" style="--glow:${ty.color}">${ty.name}</span></div>
       <canvas class="detail-cv"></canvas>
+      <div class="brand-banner" style="--bc:${G.brandOf(def).color}">${G.brandChip(def, 'big')}<div><b>${esc(G.brandOf(def).tag)}</b><small>Marka avantajı: ${esc(G.brandOf(def).perk)}</small></div></div>
       <div class="stats">
         <div><span class="label">Seviye</span><b>${lv}/10</b></div>
         <div><span class="label">Can</span><b>${st.hp}${next ? `<small> → ${next.hp}</small>` : ''}</b></div>

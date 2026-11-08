@@ -80,8 +80,11 @@
     let x = Math.random() * total, ri = 0;
     for (; ri < pack.odds.length; ri++) { x -= pack.odds[ri]; if (x < 0) break; }
     const rarity = D.RARITY_ORDER[Math.min(ri, 4)];
-    return pickOne(D.CUBES.filter(c => c.rarity === rarity));
+    const pool = D.CUBES.filter(c => c.rarity === rarity && (!pack.brand || c.brand === pack.brand));
+    return pickOne(pool.length ? pool : D.CUBES.filter(c => !pack.brand || c.brand === pack.brand));
   };
+  G.brandOf = (def) => D.BRANDS[def.brand];
+  G.brandChip = (def, cls = '') => { const b = D.BRANDS[def.brand]; return `<span class="bm ${cls}" style="--bc:${b.color}">${b.name}</span>`; };
   G.typeOf = (def) => D.TYPE_OF[def.type];
 
   // ---------- Jeton ve deneyim ----------
@@ -114,6 +117,7 @@
       case 'trophies': return S.trophies;
       case 'maxLevel': return Math.max(0, ...Object.keys(S.inv).map(G.level));
       case 'mythics': return D.CUBES.filter(c => c.rarity === 'mythic' && S.inv[c.id]).length;
+      case 'brandSet': return Object.keys(D.BRANDS).some(b => D.CUBES.filter(c => c.brand === b).every(c => S.inv[c.id])) ? 1 : 0;
       case 'fast3': return S.best[3] && S.best[3] < 120000 ? 1 : 0;
       case 'flash3': return S.best[3] && S.best[3] < 60000 ? 1 : 0;
       default: return S.stats[name] || 0;

@@ -43,7 +43,7 @@
       requestAnimationFrame(() => R.drawPuzzle(b.querySelector('canvas'), def));
     });
     const def = cubeById(G.solveId);
-    if (loadedId !== G.solveId) { loadedId = G.solveId; Sim.load(def.n, D.PALETTES[def.pal]); }
+    if (loadedId !== G.solveId) { loadedId = G.solveId; Sim.load(def.n, D.PALETTES[def.pal], D.BRANDS[def.brand].name); }
     else requestAnimationFrame(() => Sim.resize && Sim.resize());
     $('sim-reward').textContent = `Karıştırıp çözersen +${REWARD[def.n]} jeton`;
   }

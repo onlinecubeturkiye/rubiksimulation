@@ -79,7 +79,7 @@
         <button class="btn btn-small" id="set-intro">Nasıl oynanır?</button>
         <button class="btn btn-small danger" id="set-reset">Oyunu sıfırla</button>
       </div>
-      <p class="note">Küp Arena v2.0</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
+      <p class="note">Küp Arena v2.1 · Oyundaki küp markaları (ZENKO, KAIRO, HAYATE, TORVA, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
     if (!body) return;
     $('set-power').onclick = () => { S.settings.power = S.settings.power === false; G.save(); openProfile(); };
     $('set-sound').onclick = () => { S.settings.sound = !S.settings.sound; Snd.setEnabled(S.settings.sound); G.save(); openProfile(); };

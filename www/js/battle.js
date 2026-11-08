@@ -16,7 +16,7 @@
     const st = G.statsOf(def, x.lvl, 1);
     const hpM = (x.mult || 1) * (x.boss ? 2.2 : 1), atkM = (x.mult || 1) * (x.boss ? 1.15 : 1);
     const hp = Math.round(st.hp * hpM);
-    return { def, lvl: x.lvl, hp, max: hp, atk: Math.round(st.atk * atkM), cd: 0, shield: 0, stun: false, boss: !!x.boss, label: x.label || def.name };
+    return { def, lvl: x.lvl, hp, max: hp, atk: Math.round(st.atk * atkM), cd: 0, shield: def.brand === 'torva' ? 1 : 0, stun: false, boss: !!x.boss, label: x.label || def.name };
   }
   const other = (s) => (s === 'A' ? 'B' : 'A');
   const cur = (s) => B[s].list[B[s].idx];
@@ -148,8 +148,8 @@
     let dmg = a.atk * rand(0.85, 1.15) * k;
     const e = eff(a, d);
     dmg *= e;
-    const crit = Math.random() < 0.1;
-    if (crit) dmg *= 1.5;
+    const crit = Math.random() < (a.def.brand === 'zenko' ? 0.2 : 0.1);
+    if (crit) dmg *= a.def.brand === 'vexa' ? 2 : 1.5;
     return { dmg: Math.max(1, Math.round(dmg)), crit, e };
   }
   function hit(dSide, dmg, big) {
@@ -191,7 +191,7 @@
       say(`${who} saldırdı: ${dealt} hasar${r.crit ? ' (kritik!)' : ''}.${effText(r.e)}${ptxt}`);
     } else {
       const sk = D.SKILLS[a.def.skill];
-      a.cd = 3;
+      a.cd = a.def.brand === 'hayate' ? 2 : 3;
       if (side === 'A' || B.mode === 'pvp') { G.bump('skills'); }
       Snd.skill();
       if (a.def.skill === 'double') { const r = rollDmg(a, d, 2 * pm); const dealt = hit(dSide, r.dmg, big); say(`${who} ${sk.name}: ${dealt} hasar!${effText(r.e)}`); }
@@ -275,7 +275,7 @@
     wrap.querySelector('.nm').textContent = f.label;
     const ty = D.TYPES[G.typeOf(f.def)];
     const e = eff(f, op);
-    const chips = [`<span>Sv ${f.lvl}</span>`, `<span class="fx" style="background:${ty.color}">${ty.name}</span>`];
+    const chips = [G.brandChip(f.def), `<span>Sv ${f.lvl}</span>`, `<span class="fx" style="background:${ty.color}">${ty.name}</span>`];
     if (f.boss) chips.push('<span class="fx boss-chip">BOSS</span>');
     if (e > 1) chips.push('<span class="fx good">Avantajlı</span>');
     if (f.shield) chips.push(`<span class="fx">Kalkan ×${f.shield}</span>`);

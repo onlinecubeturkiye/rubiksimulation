@@ -521,3 +521,22 @@ main:has(.tab-solve:not([hidden])) { display: flex; flex-direction: column; }
   .fighter { grid-template-columns: 130px 1fr; }
   .fighter canvas { width: 130px; height: 130px; }
 }
+
+/* ---------- Brands ---------- */
+.bm { display: inline-block; font-family: var(--font-display); font-weight: 800; font-size: 0.7rem; letter-spacing: 0.12em; line-height: 1.5;
+  color: #fff; background: var(--bc); border: 2px solid var(--ink); border-radius: 6px; padding: 0 6px; transform: skewX(-8deg); white-space: nowrap; }
+.bm.sm { font-size: 0.58rem; padding: 0 5px; margin-top: 2px; }
+.bm.big { font-size: 1rem; padding: 1px 10px; border-width: 3px; box-shadow: 0 3px 0 var(--ink); }
+.reveal h3 { display: grid; justify-items: center; gap: 4px; }
+.brand-banner { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; background: color-mix(in srgb, var(--bc) 14%, #fff); border: 2px solid var(--ink); border-radius: 14px; padding: 8px 10px; color: var(--ink); }
+.tab > .brand-banner { border-width: 3px; box-shadow: 0 4px 0 var(--ink); }
+.brand-banner div { display: grid; min-width: 0; }
+.brand-banner small { color: var(--muted); font-size: 0.78rem; }
+.brand-row { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 8px; }
+.brand-row button { flex: none; font: inherit; font-family: var(--font-display); font-weight: 800; font-size: 0.85rem; letter-spacing: 0.06em; cursor: pointer;
+  color: var(--ink); background: var(--card); border: 3px solid var(--ink); border-radius: 12px; padding: 4px 10px; box-shadow: 0 3px 0 var(--ink); }
+.brand-row button small { font-family: var(--font-body); font-size: 0.7rem; letter-spacing: 0; opacity: 0.8; }
+.brand-row button[aria-pressed="true"] { background: var(--bc); color: #fff; }
+.brand-perk { display: grid; gap: 2px; text-align: center; font-size: 0.72rem; color: var(--muted); }
+.brand-perk b { color: var(--ink); font-size: 0.76rem; }
+.slot .bm { font-size: 0.5rem; }

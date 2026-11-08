@@ -61,7 +61,8 @@
       for (const f of FACES) {
         const [a, b, c] = f.n;
         if (Math.abs(a * x + b * y + c * z - O) > 0.01) continue;
-        const s = new THREE.Mesh(stickerGeo, stickerMats[f.key]);
+        const isLogo = logoOn && f.key === 'U' && N % 2 === 1 && Math.abs(x) < 0.01 && Math.abs(z) < 0.01;
+        const s = new THREE.Mesh(stickerGeo, isLogo ? logoMat : stickerMats[f.key]);
         s.position.set(a * 0.495, b * 0.495, c * 0.495);
         s.lookAt(a, b, c);
         s.userData = { face: f.key, n: new V(a, b, c) };
@@ -356,13 +357,31 @@
     requestAnimationFrame(loop);
   }
 
-  function paint(pal) {
+  // Marka logolu orta parça
+  const logoCanvas = document.createElement('canvas');
+  logoCanvas.width = logoCanvas.height = 256;
+  const logoTex = new THREE.CanvasTexture(logoCanvas);
+  logoTex.repeat.set(1 / 0.84, 1 / 0.84); logoTex.offset.set(0.5, 0.5);
+  const logoMat = new THREE.MeshStandardMaterial({ map: logoTex, roughness: 0.32 });
+  let logoOn = false;
+  function paintLogo(pal, text) {
+    const c = logoCanvas.getContext('2d');
+    c.fillStyle = pal.U; c.fillRect(0, 0, 256, 256);
+    const n = parseInt(pal.U.slice(1), 16), l = (0.3 * (n >> 16) + 0.59 * ((n >> 8) & 255) + 0.11 * (n & 255)) / 255;
+    c.fillStyle = l > 0.55 ? 'rgba(29,20,70,0.78)' : 'rgba(255,255,255,0.9)';
+    c.font = '800 84px "Baloo 2", "Arial Black", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(text, 128, 132);
+    logoTex.needsUpdate = true;
+  }
+  function paint(pal, logo) {
     FACES.forEach(f => stickerMats[f.key].color.set(pal[f.key]));
     bodyMat.color.set(pal.body);
+    logoOn = !!logo;
+    if (logo) paintLogo(pal, logo);
   }
-  Sim.load = function (n, pal) {
+  Sim.load = function (n, pal, logo) {
     challenge = null;
-    paint(pal);
+    paint(pal, logo);
     reset(n);
     resize();
   };

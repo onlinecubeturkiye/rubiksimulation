@@ -9,6 +9,7 @@ Paket aç, küp topla, maceraya çık, savaş ve çöz. Telefonda (Android uygul
 - **Arena:** Kupa maçları ve ligler (Bronz → Efsane), sıralama listesi.
 - **2 kişilik maç:** Aynı telefonda arkadaşınla. Herkes 3 bulmaca seçer, sırayla oynarsınız.
 - **Mağaza:** 3 paket, her 3 saatte bedava paket, günlük hediye, günün fırsatı.
+- **Markalar:** 5 kurgusal küp markası (ZENKO, KAIRO, HAYATE, TORVA, VEXA). Her birinin kendi logosu, modelleri, marka kutusu ve savaşta bir avantajı var. Gerçek markalarla ilgisi yoktur.
 - **Envanter:** 26 bulmaca. Kopyalar seviye yükseltir, jetonla güçlendirme, fazlaları satma.
 - **Çöz:** 3B küp simülatörü (2×2–7×7), günlük bulmaca, ipucu.
 - **Amaçlar:** Günlük görevler, 22 başarım, oyuncu seviyesi (her 5 seviyede bedava paket).
