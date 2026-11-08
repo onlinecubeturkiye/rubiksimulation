@@ -141,7 +141,7 @@
   // idle (serbest) | scrambling | ready (ilk hamle bekleniyor) | timing | solving | solved
   let phase = 'idle', history = [], userMoves = [], moveCount = 0, t0 = 0, elapsed = 0;
   const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const SPEED = reduced ? 90 : 170;
+  let SPEED = reduced ? 90 : 170;
   const busy = () => phase === 'scrambling' || phase === 'solving';
 
   function userTurn(m) {
@@ -379,8 +379,9 @@
     logoOn = !!logo;
     if (logo) paintLogo(pal, logo);
   }
-  Sim.load = function (n, pal, logo) {
+  Sim.load = function (n, pal, logo, speed) {
     challenge = null;
+    SPEED = reduced ? 90 : (speed || 170);
     paint(pal, logo);
     reset(n);
     resize();
@@ -388,6 +389,7 @@
   // Meydan okuma: belli sayıda dış katman hamlesiyle (aynı tohumla hep aynı) karıştırılmış küp.
   Sim.challenge = function (cfg) {
     challenge = cfg;
+    SPEED = reduced ? 90 : 170;
     paint(cfg.pal);
     resize();
     restartChallenge();

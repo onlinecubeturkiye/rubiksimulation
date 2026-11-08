@@ -76,16 +76,24 @@
   ];
 
   // Kurgusal küp markaları. Gerçek markalarla bir ilgisi yoktur.
+  // Seviyeler: ekonomik (ucuz, basit), orta segment (fiyatına göre güzel), rekabetçi (yarışma küpleri).
+  // speed: 3B küpte bir katmanın dönme süresi (ms). Pahalı küpler daha hızlı ve akıcı döner.
+  const TIERS = {
+    eko:   { name: 'Ekonomik',     color: '#8bc34a', speed: 240, desc: 'Ucuz ve basit. Yeni başlayanlar için.' },
+    orta:  { name: 'Orta segment', color: '#38bdf8', speed: 175, desc: 'Fiyatına göre çok güzel, renkli ve akıcı.' },
+    pro:   { name: 'Rekabetçi',    color: '#ffcc1f', speed: 115, desc: 'Yarışmalarda kullanılan en iyi küpler.' },
+  };
   const BRANDS = {
-    zenko:  { name: 'ZENKO',  color: '#e11d48', tag: 'Premium yarışma küpleri', perk: 'Kritik şansı %20 (normali %10)' },
-    kairo:  { name: 'KAIRO',  color: '#0ea5e9', tag: 'Herkes için uygun fiyatlı küpler', perk: '+%15 can' },
-    hayate: { name: 'HAYATE', color: '#f59e0b', tag: 'Hız için tasarlandı', perk: 'Yetenek 2 turda bir (normali 3)' },
-    torva:  { name: 'TORVA',  color: '#10b981', tag: 'Güçlü mıknatıslar, sağlam yapı', perk: 'Savaşa 1 kalkanla başlar' },
-    vexa:   { name: 'VEXA',   color: '#8b5cf6', tag: 'Deneysel ve sıra dışı bulmacalar', perk: 'Kritik vuruş 2 kat (normali 1,5)' },
+    topac:  { name: 'TOPAÇ',  tier: 'eko',  color: '#65a30d', tag: 'Oyuncakçıdaki renkli küpler', perk: 'Güçlendirme %40 ucuz' },
+    kairo:  { name: 'KAIRO',  tier: 'eko',  color: '#0ea5e9', tag: 'Herkes için uygun fiyatlı küpler', perk: '+%15 can' },
+    hayate: { name: 'HAYATE', tier: 'orta', color: '#f59e0b', tag: 'Hafif, hızlı ve şeker gibi', perk: 'Yetenek 2 turda bir (normali 3)' },
+    torva:  { name: 'TORVA',  tier: 'orta', color: '#10b981', tag: 'Güçlü mıknatıslar, sağlam yapı', perk: 'Savaşa 1 kalkanla başlar' },
+    zenko:  { name: 'ZENKO',  tier: 'pro',  color: '#e11d48', tag: 'Şampiyonların tercihi amiral gemisi küpler', perk: 'Kritik şansı %20 (normali %10)' },
+    vexa:   { name: 'VEXA',   tier: 'pro',  color: '#8b5cf6', tag: 'Rekabetçi ve sıra dışı tasarımlar', perk: 'Kritik vuruş 2 kat (normali 1,5)' },
   };
   const MODELS = {
     c2: ['kairo', 'KAIRO Mini 2'], c3: ['kairo', 'KAIRO Start 3'], p2: ['kairo', 'KAIRO Piramit S'],
-    c2p: ['kairo', 'KAIRO Candy 2'], c3p: ['kairo', 'KAIRO Candy 3'],
+    c2p: ['topac', 'TOPAÇ Renkli 2'], c3p: ['topac', 'TOPAÇ Renkli 3'],
     c4: ['torva', 'TORVA Grid 4'], c3n: ['hayate', 'HAYATE Neon 3'], p3: ['hayate', 'HAYATE Piramit'],
     sk: ['vexa', 'VEXA Eğik X'], c3i: ['torva', 'TORVA Frost 3'], c2f: ['hayate', 'HAYATE Blaze 2'],
     c5: ['torva', 'TORVA Grid 5 M'], mg: ['vexa', 'VEXA Mega 12'], c3f: ['hayate', 'HAYATE Blaze 3 M'],
@@ -105,8 +113,10 @@
     { id: 'efsane', name: 'Efsane Paketi', price: 600, odds: [0, 35, 40, 20, 5],
       bg: 'linear-gradient(160deg,#ff9a00,#ff2e88 55%,#8b2cff)', cap: '#c2186b', art: ['c5g', 'mgr', 'c3g'] },
     // Marka kutuları: yalnızca o markanın bulmacaları çıkar.
+    { id: 'b-topac', brand: 'topac', name: 'TOPAÇ Kutusu', price: 50, odds: [100, 0, 0, 0, 0],
+      bg: 'linear-gradient(160deg,#a3e635,#4d7c0f)', cap: '#3f6212', art: ['c2p', 'c3p', 'c2p'] },
     { id: 'b-kairo', brand: 'kairo', name: 'KAIRO Kutusu', price: 80, odds: [100, 0, 0, 0, 0],
-      bg: 'linear-gradient(160deg,#38bdf8,#0369a1)', cap: '#075985', art: ['c3', 'c2p', 'p2'] },
+      bg: 'linear-gradient(160deg,#38bdf8,#0369a1)', cap: '#075985', art: ['c3', 'c2', 'p2'] },
     { id: 'b-torva', brand: 'torva', name: 'TORVA Kutusu', price: 300, odds: [0, 70, 30, 0, 0],
       bg: 'linear-gradient(160deg,#34d399,#047857)', cap: '#065f46', art: ['c4', 'c3i', 'c5'] },
     { id: 'b-hayate', brand: 'hayate', name: 'HAYATE Kutusu', price: 300, odds: [0, 70, 22, 8, 0],
@@ -198,8 +208,9 @@
     { id: 'max10',   name: 'Usta Eğitmen',       desc: 'Bir bulmacayı seviye 10 yap',  stat: 'maxLevel',   target: 10, reward: 400 },
     { id: 'packs50', name: 'Paket Tutkunu',      desc: '50 paket aç',                  stat: 'packs',      target: 50, reward: 300 },
     { id: 'brandSet', name: 'Marka Tutkunu',     desc: 'Bir markanın tüm bulmacalarını topla', stat: 'brandSet', target: 1, reward: 500 },
+    { id: 'proCube', name: 'Yarışmacı',          desc: 'Rekabetçi seviyede bir küp bul',        stat: 'proOwned', target: 1, reward: 200 },
     { id: 'pvp1',    name: 'Dostluk Maçı',       desc: 'Arkadaşınla aynı telefonda oyna', stat: 'pvp',     target: 1,  reward: 100 },
   ];
 
-  window.GameData = { BRANDS, RARITIES, RARITY_ORDER, PALETTES, SKILLS, CUBES, PACKS, BOTS, TYPE_OF, TYPES, WORLDS, QUESTS, ACHIEVEMENTS };
+  window.GameData = { TIERS, BRANDS, RARITIES, RARITY_ORDER, PALETTES, SKILLS, CUBES, PACKS, BOTS, TYPE_OF, TYPES, WORLDS, QUESTS, ACHIEVEMENTS };
 })();

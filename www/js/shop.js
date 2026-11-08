@@ -80,7 +80,15 @@
     // Satılık paketler
     const wrap = $('packs'); wrap.innerHTML = '';
     $('brand-packs').innerHTML = '';
-    D.PACKS.forEach(p => {
+    const tierKeys = Object.keys(D.TIERS);
+    const tierIdx = (p) => p.brand ? tierKeys.indexOf(D.BRANDS[p.brand].tier) : -1;
+    let lastTier = null;
+    D.PACKS.slice().sort((a, b) => tierIdx(a) - tierIdx(b)).forEach(p => {
+      if (p.brand && D.BRANDS[p.brand].tier !== lastTier) {
+        lastTier = D.BRANDS[p.brand].tier;
+        const t = D.TIERS[lastTier];
+        $('brand-packs').appendChild(h('div', 'tier-head', `${G.tierChip(lastTier)}<span>${esc(t.desc)}</span>`));
+      }
       const card = h('div', 'pack-card' + (p.brand ? ' brand-box' : ''));
       const pk = makePack(p);
       card.appendChild(pk);
@@ -257,7 +265,7 @@
     const b = D.BRANDS[brandFilter];
     info.hidden = false;
     info.style.setProperty('--bc', b.color);
-    info.innerHTML = `<span class="bm big" style="--bc:${b.color}">${b.name}</span><div><b>${esc(b.tag)}</b><small>Avantaj: ${esc(b.perk)}</small></div>`;
+    info.innerHTML = `<span class="bm big" style="--bc:${b.color}">${b.name}</span><div>${G.tierChip(b.tier)}<b>${esc(b.tag)}</b><small>Avantaj: ${esc(b.perk)}</small></div>`;
   }
   function renderInv() {
     const S = G.S;
@@ -330,7 +338,7 @@
     const body = G.modal(def.name, `
       <div class="tags"><span class="rarity-tag" style="--glow:${r.color}">${r.name}</span><span class="rarity-tag" style="--glow:${ty.color}">${ty.name}</span></div>
       <canvas class="detail-cv"></canvas>
-      <div class="brand-banner" style="--bc:${G.brandOf(def).color}">${G.brandChip(def, 'big')}<div><b>${esc(G.brandOf(def).tag)}</b><small>Marka avantajı: ${esc(G.brandOf(def).perk)}</small></div></div>
+      <div class="brand-banner" style="--bc:${G.brandOf(def).color}">${G.brandChip(def, 'big')}<div>${G.tierChip(G.brandOf(def).tier)}<b>${esc(G.brandOf(def).tag)}</b><small>Marka avantajı: ${esc(G.brandOf(def).perk)}${def.type === 'cube' ? ` · 3B dönüş: ${G.tierOf(def).speed < 150 ? 'çok hızlı' : G.tierOf(def).speed < 200 ? 'akıcı' : 'yavaş'}` : ''}</small></div></div>
       <div class="stats">
         <div><span class="label">Seviye</span><b>${lv}/10</b></div>
         <div><span class="label">Can</span><b>${st.hp}${next ? `<small> → ${next.hp}</small>` : ''}</b></div>

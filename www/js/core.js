@@ -74,7 +74,7 @@
     if (isNew && G.S.team.length < 3) G.S.team.push(id);
     return { isNew, lvl: G.S.lvl[id] };
   };
-  G.upgradeCost = (def) => Math.round(40 * G.level(def.id) * (1 + D.RARITIES[def.rarity].order * 0.5));
+  G.upgradeCost = (def) => Math.round(40 * G.level(def.id) * (1 + D.RARITIES[def.rarity].order * 0.5) * (def.brand === 'topac' ? 0.6 : 1));
   G.rollPack = function (pack) {
     const total = pack.odds.reduce((a, b) => a + b, 0);
     let x = Math.random() * total, ri = 0;
@@ -84,6 +84,8 @@
     return pickOne(pool.length ? pool : D.CUBES.filter(c => !pack.brand || c.brand === pack.brand));
   };
   G.brandOf = (def) => D.BRANDS[def.brand];
+  G.tierOf = (def) => D.TIERS[D.BRANDS[def.brand].tier];
+  G.tierChip = (t) => `<span class="tier" style="--tc:${D.TIERS[t].color}">${D.TIERS[t].name}</span>`;
   G.brandChip = (def, cls = '') => { const b = D.BRANDS[def.brand]; return `<span class="bm ${cls}" style="--bc:${b.color}">${b.name}</span>`; };
   G.typeOf = (def) => D.TYPE_OF[def.type];
 
@@ -118,6 +120,7 @@
       case 'maxLevel': return Math.max(0, ...Object.keys(S.inv).map(G.level));
       case 'mythics': return D.CUBES.filter(c => c.rarity === 'mythic' && S.inv[c.id]).length;
       case 'brandSet': return Object.keys(D.BRANDS).some(b => D.CUBES.filter(c => c.brand === b).every(c => S.inv[c.id])) ? 1 : 0;
+      case 'proOwned': return D.CUBES.some(c => S.inv[c.id] && D.BRANDS[c.brand].tier === 'pro') ? 1 : 0;
       case 'fast3': return S.best[3] && S.best[3] < 120000 ? 1 : 0;
       case 'flash3': return S.best[3] && S.best[3] < 60000 ? 1 : 0;
       default: return S.stats[name] || 0;
