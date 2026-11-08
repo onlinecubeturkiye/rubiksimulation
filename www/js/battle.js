@@ -37,6 +37,7 @@
     $('b-auto').hidden = cfg.mode === 'pvp';
     $('b-auto').textContent = 'Oto: Kapalı';
     $('b-quit').textContent = cfg.mode === 'pvp' ? 'Bitir' : 'Pes et';
+    if (cfg.mode !== 'pvp' && G.event().id === 'pyramid') B.A.list.forEach(f => { if (f.def.type === 'pyramid') f.atk = Math.round(f.atk * 1.25); });
     $('battle').hidden = false;
     $('power').hidden = true; $('b-acts').hidden = false;
     B.drawn = {};

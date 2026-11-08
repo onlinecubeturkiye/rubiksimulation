@@ -4,6 +4,10 @@ Paket aç, küp topla, maceraya çık, savaş ve çöz. Telefonda (Android uygul
 
 ## Oyun
 
+- **Ana Ekran:** Vitrin küpü, büyük OYNA düğmesi, görevler, günlük giriş, çark, sandık ve sezon kısayolları.
+- **Sezon Yolu:** Her 28 günde yenilenen 30 kademeli ödül yolu (son ödül Mitik küp). Oynayarak kazanılan XP ile ilerler.
+- **Haftalık etkinlik:** Her hafta değişir (Çift Jeton, Piramit Festivali, Kule Haftası, Marka Haftası).
+
 - **Macera:** 6 dünya × 6 bölüm (Oyuncak Kasabası, Buz Vadisi, Ateş Dağı, Altın Çöl, Galaksi Kalesi, Kaos Boyutu). Her dünyada savaşlar, bir küp bulmacası ve bir boss var. Bölümlerden 1–3 yıldız alınır, her boss nadir bir bulmaca verir.
 - **Sonsuz Kule:** Bitmeyen mod. Kat kat zorlaşır, her 5 katta kayıt noktası, her 10 katta muhafız.
 - **Arena:** Kupa maçları ve ligler (Bronz → Efsane), sıralama listesi.

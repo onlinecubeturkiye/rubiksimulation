@@ -95,6 +95,7 @@
   G.addXP = function (n) {
     const S = G.S;
     S.xp += n;
+    G.seasonState().pts += n;
     while (S.xp >= G.xpNeed(S.level)) {
       S.xp -= G.xpNeed(S.level);
       S.level++;
@@ -174,6 +175,7 @@
     if (res.perfects) { const c = res.perfects * 5; coins += c; lines.push([`Mükemmel vuruş ×${res.perfects}`, `+${c}`]); }
     if (S.streak >= 2) { const c = Math.min(S.streak, 10) * 5; coins += c; lines.push([`Galibiyet serisi ×${S.streak}`, `+${c}`]); }
     if (S.keys < 3) { S.keys++; lines.push(['Sandık anahtarı', `${S.keys}/3`]); }
+    if (G.event().id === 'coins') { coins += 50; lines.push(['Etkinlik: Çift Jeton', '+50']); }
     if (coins) G.addCoins(coins);
     return { coins, html: bonusHtml(lines) };
   };
@@ -222,18 +224,57 @@
   };
 
   // ---------- Üst bar ----------
+  // ---------- Sezon Yolu: her 28 günde yenilenen 30 kademeli ödül yolu ----------
+  G.SEASON_TIER = 300;
+  G.SEASON_TIERS = 30;
+  G.seasonId = () => Math.floor(dayIndex() / 28);
+  G.seasonDaysLeft = () => 28 - (dayIndex() % 28);
+  G.seasonState = function () {
+    const S = G.S, id = G.seasonId();
+    if (!S.season || S.season.id !== id) S.season = { id, pts: 0, claimed: [] };
+    return S.season;
+  };
+  G.seasonReward = function (t) {
+    if (t === G.SEASON_TIERS) return { text: 'Mitik Küp', mythic: true };
+    if (t % 10 === 0) return { text: 'Efsane Paketi', pack: 'efsane' };
+    if (t % 5 === 0) return { text: 'Usta Paketi', pack: 'usta' };
+    if (t % 3 === 0) return { text: 'Klasik Paket', pack: 'klasik' };
+    return { text: `${60 + t * 10} jeton`, coins: 60 + t * 10 };
+  };
+  G.seasonTier = () => Math.min(G.SEASON_TIERS, Math.floor(G.seasonState().pts / G.SEASON_TIER));
+  G.seasonClaimable = () => { const st = G.seasonState(), t = G.seasonTier(); for (let i = 1; i <= t; i++) if (!st.claimed.includes(i)) return true; return false; };
+
+  // ---------- Haftalık etkinlik ----------
+  G.event = function () {
+    const week = Math.floor((dayIndex() + 3) / 7);
+    const brands = Object.keys(D.BRANDS);
+    const list = [
+      { id: 'coins', name: 'Çift Jeton Haftası', desc: 'Her galibiyette +50 bonus jeton', color: '#ff9f2e' },
+      { id: 'pyramid', name: 'Piramit Festivali', desc: 'Piramitlerin saldırısı %25 fazla', color: '#3bdc6e' },
+      { id: 'tower', name: 'Kule Haftası', desc: 'Sonsuz Kule ödülleri 2 kat', color: '#8a5cff' },
+      { id: 'brand', brand: brands[week % brands.length], name: `${D.BRANDS[brands[week % brands.length]].name} Haftası`, desc: 'Bu markanın kutusu %30 indirimli', color: D.BRANDS[brands[week % brands.length]].color },
+    ];
+    const ev = list[week % list.length];
+    ev.daysLeft = 7 - ((dayIndex() + 3) % 7);
+    return ev;
+  };
+
   function renderHeader() {
     const S = G.S;
     $('coins').textContent = S.coins;
     $('lvl-num').textContent = S.level;
+    $('hdr-name').textContent = S.name;
+    $('hdr-tr').textContent = S.trophies;
     const pct = Math.min(100, S.xp / G.xpNeed(S.level) * 100);
-    $('lvl-btn').style.setProperty('--p', pct + '%');
+    document.querySelector('.lvl-badge').style.setProperty('--p', pct + '%');
+    $('hdr-xp').style.width = pct + '%';
     if (S.quests) $('quest-btn').classList.toggle('dot', G.questsClaimable());
+    const homeTab = document.querySelector('[data-tab=home]');
+    if (homeTab && S.quests) homeTab.classList.toggle('dot', G.questsClaimable() || S.keys >= 3 || G.seasonClaimable());
     const packCount = S.packs.klasik + S.packs.usta + S.packs.efsane;
     const shopTab = document.querySelector('[data-tab=shop]');
     if (shopTab) shopTab.classList.toggle('dot', packCount > 0 || S.lastGift + G.GIFT_MS <= Date.now() || S.lastFree + G.FREE_MS <= Date.now() || S.wheelDay !== dayIndex());
-    const advTab = document.querySelector('[data-tab=adv]');
-    if (advTab) advTab.classList.toggle('dot', S.keys >= 3);
+
   }
   G.renderHeader = renderHeader;
   G.GIFT_MS = 20 * 3600 * 1000;

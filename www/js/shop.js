@@ -3,6 +3,10 @@
   const { $, h, esc, wait, cubeById, D } = G;
   const R = window.Render, Snd = window.Sound;
   const packById = (id) => D.PACKS.find(p => p.id === id);
+  // Marka haftasında o markanın kutusu %30 indirimli
+  const onSale = (p) => { const ev = G.event(); return ev.id === 'brand' && p.brand === ev.brand; };
+  const priceOf = (p) => (onSale(p) ? Math.round(p.price * 0.7) : p.price);
+  G.priceOf = priceOf;
 
   // ---------- Paket görseli ----------
   function zigzag(teeth, depth, bottom) {
@@ -98,8 +102,8 @@
       }
       const odds = D.RARITY_ORDER.map((rr, i) => p.odds[i] ? `<b style="color:${D.RARITIES[rr].color}">${D.RARITIES[rr].name}</b> %${p.odds[i]}` : '').filter(Boolean).join(' · ');
       card.appendChild(h('div', 'odds', odds));
-      const b = h('button', 'btn btn-yellow', `<i class="coin"></i>${p.price}`);
-      b.setAttribute('aria-label', `${p.name} satın al, ${p.price} jeton`);
+      const b = h('button', 'btn btn-yellow', `<i class="coin"></i>${priceOf(p)}${onSale(p) ? ` <span class="old">${p.price}</span>` : ''}`);
+      b.setAttribute('aria-label', `${p.name} satın al, ${priceOf(p)} jeton`);
       b.onclick = () => buy(p);
       card.appendChild(b);
       (p.brand ? $('brand-packs') : wrap).appendChild(card);
@@ -176,8 +180,9 @@
   };
 
   function buy(pack) {
-    if (G.S.coins < pack.price) { G.toast(`Yeterli jeton yok (${pack.price} gerekli)`); return; }
-    G.S.coins -= pack.price;
+    const price = priceOf(pack);
+    if (G.S.coins < price) { G.toast(`Yeterli jeton yok (${price} gerekli)`); return; }
+    G.S.coins -= price;
     G.save();
     G.openPack(pack, true);
   }
@@ -232,7 +237,7 @@
     if (r.order >= 3) window.FX.confetti(60 + r.order * 20);
     if (r.order >= 3 && navigator.vibrate) { try { navigator.vibrate([60, 40, 120]); } catch (e) {} }
     const again = $('open-again');
-    if (paid) { again.hidden = false; again.textContent = `Bir tane daha (${pack.price})`; again.disabled = G.S.coins < pack.price; }
+    if (paid) { again.hidden = false; again.textContent = `Bir tane daha (${priceOf(pack)})`; again.disabled = G.S.coins < priceOf(pack); }
     else if (G.S.packs[pack.id] > 0) { again.hidden = false; again.textContent = `Sıradakini aç (${G.S.packs[pack.id]})`; again.disabled = false; }
     else again.hidden = true;
     $('open-actions').hidden = false;

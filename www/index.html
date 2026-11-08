@@ -5,24 +5,53 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Küp Arena</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="theme-color" content="#1a0f3a">
+<meta name="theme-color" content="#0b1033">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand">Küp<span>Arena</span></div>
+    <button class="player" id="lvl-btn" aria-label="Profil ve başarımlar">
+      <span class="lvl-badge"><span id="lvl-num">1</span></span>
+      <span class="player-info"><b id="hdr-name">Oyuncu</b><span class="xp"><i id="hdr-xp"></i></span></span>
+    </button>
     <div class="wallet">
-      <button class="hbtn" id="quest-btn" aria-label="Günlük görevler"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12v4h-2V4H8v16h8v-2h2v4H6V2Zm4 5h8v2h-8V7Zm0 4h10v2H10v-2Zm0 4h6v2h-6v-2Z"/></svg></button>
-      <button class="lvl" id="lvl-btn" aria-label="Profil ve başarımlar"><span id="lvl-num">1</span></button>
-      <span class="chip" title="Jeton"><i class="coin" aria-hidden="true"></i><b id="coins">0</b></span>
+      <span class="res"><svg class="res-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v3h3v3a4 4 0 0 1-4 4h-.4A5 5 0 0 1 13 15.9V18h3v3H8v-3h3v-2.1A5 5 0 0 1 8.4 13H8a4 4 0 0 1-4-4V6h3V3Z" fill="#ffc928" stroke="#0b1033" stroke-width="1.5"/></svg><b id="hdr-tr">0</b></span>
+      <span class="res"><i class="coin res-ico" aria-hidden="true"></i><b id="coins">0</b></span>
     </div>
   </header>
 
   <main id="main">
+    <!-- ANA SAYFA -->
+    <section class="tab tab-home" id="tab-home">
+      <button class="event-banner" id="event-banner"></button>
+      <div class="home-stage">
+        <div class="home-side">
+          <button class="side-btn" id="quest-btn"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="10" y="6" width="28" height="36" rx="4" fill="#fff" stroke="#0b1033" stroke-width="3"/><path d="M16 16h16M16 24h16M16 32h10" stroke="#2e8cff" stroke-width="4" stroke-linecap="round"/></svg><span>Görevler</span></button>
+          <button class="side-btn" id="login-btn"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="10" width="36" height="32" rx="5" fill="#fff" stroke="#0b1033" stroke-width="3"/><rect x="6" y="10" width="36" height="10" rx="4" fill="#ff4d5e" stroke="#0b1033" stroke-width="3"/><circle cx="24" cy="31" r="5" fill="#ffc928" stroke="#0b1033" stroke-width="2.5"/></svg><span>Günlük</span></button>
+          <button class="side-btn" id="wheel-home"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="18" fill="#8a5cff" stroke="#0b1033" stroke-width="3"/><path d="M24 6v36M6 24h36M11 11l26 26M37 11 11 37" stroke="#fff" stroke-width="2.5"/><circle cx="24" cy="24" r="5" fill="#ffc928" stroke="#0b1033" stroke-width="2.5"/></svg><span>Çark</span></button>
+        </div>
+        <button class="showcase" id="showcase" aria-label="Vitrin küpü, değiştirmek için dokun">
+          <span class="sc-rays"></span><span class="sc-plat"></span><canvas id="sc-cv"></canvas>
+          <span class="sc-name" id="sc-name"></span>
+        </button>
+        <div class="home-side">
+          <button class="side-btn" id="chest-home"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 20h36v20a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V20Z" fill="#ff8a1f" stroke="#0b1033" stroke-width="3"/><path d="M6 20c0-8 6-13 18-13s18 5 18 13H6Z" fill="#ffc928" stroke="#0b1033" stroke-width="3"/><rect x="20" y="17" width="8" height="10" rx="2" fill="#fff" stroke="#0b1033" stroke-width="3"/></svg><span id="chest-home-txt">Sandık</span></button>
+          <button class="side-btn" id="season-btn"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4l6 13 14 2-10 10 2 14-12-7-12 7 2-14L4 19l14-2z" fill="#ffc928" stroke="#0b1033" stroke-width="3" stroke-linejoin="round"/></svg><span>Sezon</span></button>
+          <button class="side-btn" id="tower-home"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 44V18h20v26z" fill="#8a5cff" stroke="#0b1033" stroke-width="3"/><path d="M11 18V8h6v4h4V8h6v4h4V8h6v10z" fill="#b896ff" stroke="#0b1033" stroke-width="3" stroke-linejoin="round"/><rect x="20" y="30" width="8" height="14" fill="#0b1033"/></svg><span>Kule</span></button>
+        </div>
+      </div>
+      <button class="season-bar" id="season-bar"></button>
+      <div class="home-play">
+        <button class="btn btn-blue play-side" id="home-arena"><span>ARENA</span><small id="home-arena-sub"></small></button>
+        <button class="btn btn-yellow play-main" id="home-play"><span>OYNA</span><small id="home-play-sub"></small></button>
+      </div>
+    </section>
+
     <!-- MACERA -->
-    <section class="tab" id="tab-adv">
+    <section class="tab" id="tab-adv" hidden>
       <div class="sec-head">
+        <button class="back" id="adv-back" aria-label="Ana sayfaya dön">‹</button>
         <h2 class="sec-title">Macera</h2>
         <span class="star-total">★ <b id="adv-stars">0</b></span>
       </div>
@@ -150,11 +179,11 @@
   </main>
 
   <nav class="tabs" id="tabs">
-    <button data-tab="adv" aria-current="page"><svg viewBox="0 0 24 24"><path d="m9 3 6 2 6-2v16l-6 2-6-2-6 2V5l6-2Zm1 2.4v12.2l4 1.3V6.7l-4-1.3Z"/></svg>Macera</button>
-    <button data-tab="arena"><svg viewBox="0 0 24 24"><path d="M3 3h4l8 8-2 2-8-8V3Zm18 0v4l-5 5-2-2 5-5 2-2ZM4 17l3-3 3 3-3 3-3-3Zm10 0 3-3 3 3-3 3-3-3Zm-3-2 2 2-2 2-2-2 2-2Z"/></svg>Arena</button>
-    <button data-tab="shop"><svg viewBox="0 0 24 24"><path d="M5 3h14l-1 3 1 3-1 3 1 3-1 3 1 3H5l1-3-1-3 1-3-1-3 1-3-1-3Z"/></svg>Mağaza</button>
-    <button data-tab="inv"><svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>Envanter</button>
-    <button data-tab="solve"><svg viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7l9-5Zm0 2.3L5.3 8 12 11.7 18.7 8 12 4.3Z"/></svg>Çöz</button>
+    <button data-tab="shop"><svg viewBox="0 0 48 48"><path d="M8 18h32l-3 24H11z" fill="#ff4f9a" stroke="#0b1033" stroke-width="3" stroke-linejoin="round"/><path d="M16 18a8 8 0 0 1 16 0" fill="none" stroke="#0b1033" stroke-width="3"/><circle cx="24" cy="30" r="5" fill="#ffc928" stroke="#0b1033" stroke-width="2.5"/></svg><span>Mağaza</span></button>
+    <button data-tab="inv"><svg viewBox="0 0 48 48"><rect x="6" y="6" width="16" height="16" rx="3" fill="#2e8cff" stroke="#0b1033" stroke-width="3"/><rect x="26" y="6" width="16" height="16" rx="3" fill="#3bdc6e" stroke="#0b1033" stroke-width="3"/><rect x="6" y="26" width="16" height="16" rx="3" fill="#ffc928" stroke="#0b1033" stroke-width="3"/><rect x="26" y="26" width="16" height="16" rx="3" fill="#ff4d5e" stroke="#0b1033" stroke-width="3"/></svg><span>Koleksiyon</span></button>
+    <button data-tab="home" class="home-tab" aria-current="page"><svg viewBox="0 0 48 48"><path d="M24 4 42 14v20L24 44 6 34V14z" fill="#ffc928" stroke="#0b1033" stroke-width="3" stroke-linejoin="round"/><path d="M6 14l18 10 18-10M24 24v20" fill="none" stroke="#0b1033" stroke-width="3"/><path d="M24 24 42 14v20L24 44z" fill="#ff8a1f" stroke="#0b1033" stroke-width="3" stroke-linejoin="round"/></svg><span>Ana Sayfa</span></button>
+    <button data-tab="arena"><svg viewBox="0 0 48 48"><path d="M10 8h6l18 18-4 4L12 12z" fill="#e8ecff" stroke="#0b1033" stroke-width="3" stroke-linejoin="round"/><path d="M38 8h-6L14 26l4 4L36 12z" fill="#e8ecff" stroke="#0b1033" stroke-width="3" stroke-linejoin="round"/><path d="M8 34l6-6 6 6-6 6zM28 34l6-6 6 6-6 6z" fill="#ff8a1f" stroke="#0b1033" stroke-width="3" stroke-linejoin="round"/></svg><span>Arena</span></button>
+    <button data-tab="solve"><svg viewBox="0 0 48 48"><path d="M24 4 42 14v20L24 44 6 34V14z" fill="#3bdc6e" stroke="#0b1033" stroke-width="3" stroke-linejoin="round"/><path d="M6 14l18 10 18-10M24 24v20" fill="none" stroke="#0b1033" stroke-width="3"/><path d="M15 9l18 10M33 9 15 19M12 20v16M36 20v16" stroke="#0b1033" stroke-width="2" opacity=".5"/></svg><span>Çöz</span></button>
   </nav>
 </div>
 
@@ -222,6 +251,7 @@
 <script src="js/shop.js"></script>
 <script src="js/arena.js"></script>
 <script src="js/solve.js"></script>
+<script src="js/home.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

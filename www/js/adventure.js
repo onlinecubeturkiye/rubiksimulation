@@ -75,6 +75,14 @@
         <div class="path"></div>
         ${open ? '' : `<div class="lock">Kilitli: önce ${esc(D.WORLDS[wi - 1].boss.name)}’ni yen</div>`}`;
       const path = card.querySelector('.path');
+      // Kıvrılan yol: düğmeler sağa sola dağılır, aralarında kalın bir patika çizilir.
+      const PTS = [[24, 48], [72, 118], [34, 190], [74, 262], [28, 334], [60, 404]];
+      let d = `M ${PTS[0][0]} ${PTS[0][1]}`;
+      for (let i = 1; i < PTS.length; i++) { const [x0, y0] = PTS[i - 1], [x1, y1] = PTS[i], my = (y0 + y1) / 2; d += ` C ${x0} ${my}, ${x1} ${my}, ${x1} ${y1}`; }
+      path.innerHTML = `<svg class="route" viewBox="0 0 100 440" preserveAspectRatio="none" aria-hidden="true">
+        <path d="${d}" fill="none" stroke="#0b1033" stroke-width="22" stroke-linecap="round" vector-effect="non-scaling-stroke" opacity="0.85"/>
+        <path d="${d}" fill="none" stroke="#fff3c4" stroke-width="14" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+        <path d="${d}" fill="none" stroke="#e8c770" stroke-width="3" stroke-dasharray="2 14" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`;
       sts.forEach(st => {
         const s = stars(st), ok = unlocked(st);
         const node = h('button', `node ${st.type}${ok ? '' : ' off'}${s ? ' done' : ''}${ok && !s ? ' next' : ''}`);
@@ -82,6 +90,9 @@
           <span class="nstars">${'★'.repeat(s)}${'☆'.repeat(3 - s)}</span>`;
         node.setAttribute('aria-label', `Bölüm ${st.label}${ok ? '' : ', kilitli'}`);
         node.disabled = !ok;
+        node.dataset.stage = st.id;
+        node.style.left = PTS[st.i][0] + '%';
+        node.style.top = PTS[st.i][1] + 'px';
         node.onclick = () => preview(st);
         path.appendChild(node);
       });
@@ -92,6 +103,7 @@
     // en son açık bölüme kaydır
   }
   G.renderAdventure = render;
+  G.nextStage = () => ALL.find(st => unlocked(st) && !stars(st)) || null;
 
   function teamCanvases(list) {
     return `<div class="mini-row">${list.map((x, i) => `<span class="mini"><canvas data-i="${i}"></canvas><small>Sv ${x.lvl}</small></span>`).join('') || '<span class="empty">Takım boş</span>'}</div>`;
@@ -243,7 +255,7 @@
         }
         G.bump('wins'); G.bump('floors');
         S.stats.towerBest = Math.max(S.stats.towerBest || 0, f);
-        let coins = 15 + f * 3, note = '';
+        let coins = (15 + f * 3) * (G.event().id === 'tower' ? 2 : 1), note = '';
         if (f % 5 === 0) { S.towerCheckpoint = Math.max(S.towerCheckpoint || 0, f); coins += 150; note = `<p class="good">Kayıt noktası: artık Kat ${f + 1}’den başlarsın. +150 bonus jeton</p>`; }
         G.addCoins(coins); G.addXP(15 + Math.floor(f / 2));
         run.floor = f + 1;

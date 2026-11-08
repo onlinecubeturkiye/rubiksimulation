@@ -2,15 +2,15 @@
 (function () {
   const { $, h, esc, D } = G;
   const Snd = window.Sound;
-  const RENDER = { adv: () => G.renderAdventure(), arena: () => G.renderArena(), shop: () => G.renderShop(), inv: () => G.renderInv(), solve: () => G.renderSolve() };
+  const RENDER = { home: () => G.renderHome(), adv: () => G.renderAdventure(), arena: () => G.renderArena(), shop: () => G.renderShop(), inv: () => G.renderInv(), solve: () => G.renderSolve() };
 
-  G.current = 'adv';
+  G.current = 'home';
   G.show = function (tab) {
     if (!RENDER[tab]) return;
     G.current = tab;
     document.querySelectorAll('.tab').forEach(s => (s.hidden = s.id !== 'tab-' + tab));
     document.querySelectorAll('#tabs button').forEach(b => {
-      if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+      if (b.dataset.tab === (tab === 'adv' ? 'home' : tab)) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
     window.Sim.active = tab === 'solve';
     RENDER[tab]();
@@ -110,7 +110,7 @@
       [{ label: 'Kapat' }, { label: 'Yükle', cls: 'btn-pink', keep: true, onClick: () => {
         const v = $('bk-in').value;
         if (!v.trim()) return G.toast('Önce bir kod yapıştır');
-        if (G.importSave(v)) { G.closeModal(); G.toast('Kayıt yüklendi!'); G.show('adv'); }
+        if (G.importSave(v)) { G.closeModal(); G.toast('Kayıt yüklendi!'); G.show('home'); }
         else G.toast('Kod geçersiz');
       } }], { replace: true });
     if (!body) return;
@@ -148,7 +148,7 @@
     if (!$('opener').hidden) { if (!$('open-actions').hidden) G.closeOpener(); return true; }
     if (G.isModalOpen()) { G.closeModal(); return true; }
     if (G.inBattle()) { $('b-quit').click(); return true; }
-    if (G.current !== 'adv') { G.show('adv'); return true; }
+    if (G.current !== 'home') { G.show('home'); return true; }
     return false;
   }
   try {
@@ -160,7 +160,8 @@
   // ---------- Başlat ----------
   G.ensureQuests();
   G.save();
-  G.show('adv');
+  $('adv-back').onclick = () => { Snd.click(); G.show('home'); };
+  G.show('home');
   if (!G.S.seenIntro) intro(true);
   else G.checkLogin();
   document.addEventListener('visibilitychange', () => {
