@@ -26,6 +26,7 @@
         <h2 class="sec-title">Macera</h2>
         <span class="star-total">★ <b id="adv-stars">0</b></span>
       </div>
+      <div class="adv-top" id="adv-top"></div>
       <div class="worlds" id="worlds"></div>
       <div class="tower" id="tower"></div>
     </section>
@@ -70,6 +71,10 @@
         <div class="gift free">
           <div><h3>Bedava paket</h3><p id="free-text"></p></div>
           <button class="btn btn-yellow" id="free-btn">Aç</button>
+        </div>
+        <div class="gift wheel">
+          <div><h3>Şans Çarkı</h3><p id="wheel-text"></p></div>
+          <button class="btn btn-yellow" id="wheel-btn">Çevir</button>
         </div>
       </div>
       <div id="owned-wrap" hidden>
@@ -161,7 +166,12 @@
   <div class="blog" id="blog" aria-live="polite"></div>
   <div class="b-side me" id="b-A"></div>
   <div class="b-turn" id="b-turn"></div>
-  <div class="b-acts">
+  <div class="power" id="power" hidden>
+    <div class="power-head"><b>Doğru anda dokun!</b><span class="combo-txt" id="power-combo"></span></div>
+    <div class="power-track"><span class="perfect"></span><span class="power-needle"></span></div>
+    <div class="power-hint">Yeşilin tam ortası: MÜKEMMEL vuruş (1,5 kat)</div>
+  </div>
+  <div class="b-acts" id="b-acts">
     <button class="btn btn-big" id="act-atk">Saldır<small>Normal hasar</small></button>
     <button class="btn btn-pink btn-big" id="act-skill">Yetenek</button>
   </div>
@@ -199,6 +209,7 @@
 <script src="js/data.js"></script>
 <script src="js/render.js"></script>
 <script src="js/sound.js"></script>
+<script src="js/fx.js"></script>
 <script src="js/sim.js"></script>
 <script src="js/core.js"></script>
 <script src="js/battle.js"></script>

@@ -58,7 +58,7 @@
     const st = [
       ['Galibiyet', S.stats.wins], ['Yenilgi', S.stats.losses], ['Kupa', S.trophies],
       ['Yıldız', `${G.totalStars()}/${G.allStages.length * 3}`], ['Kule', S.stats.towerBest || 0], ['Paket', S.stats.packs],
-      ['Çözüm', S.stats.solves], ['Koleksiyon', `${G.statValue('collection')}/${D.CUBES.length}`], ['3×3 rekor', S.best[3] ? window.Sim.fmt(S.best[3]) : '-'],
+      ['Çözüm', S.stats.solves], ['En uzun seri', S.bestStreak || 0], ['En iyi kombo', S.stats.maxCombo || 0], ['Giriş serisi', `${S.login.streak}. gün`], ['Koleksiyon', `${G.statValue('collection')}/${D.CUBES.length}`], ['3×3 rekor', S.best[3] ? window.Sim.fmt(S.best[3]) : '-'],
     ];
     const doneAch = D.ACHIEVEMENTS.filter(a => S.ach[a.id]).length;
     const ach = D.ACHIEVEMENTS.map(a => {
@@ -73,6 +73,7 @@
       <h3>Ayarlar</h3>
       <div class="settings">
         <button class="btn btn-small" id="set-sound">Ses: ${S.settings.sound ? 'Açık' : 'Kapalı'}</button>
+        <button class="btn btn-small" id="set-power">Güç çubuğu: ${S.settings.power !== false ? 'Açık' : 'Kapalı'}</button>
         <button class="btn btn-small" id="set-name">Adını değiştir</button>
         <button class="btn btn-small" id="set-backup">Kaydı yedekle / yükle</button>
         <button class="btn btn-small" id="set-intro">Nasıl oynanır?</button>
@@ -80,6 +81,7 @@
       </div>
       <p class="note">Küp Arena v2.0</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
     if (!body) return;
+    $('set-power').onclick = () => { S.settings.power = S.settings.power === false; G.save(); openProfile(); };
     $('set-sound').onclick = () => { S.settings.sound = !S.settings.sound; Snd.setEnabled(S.settings.sound); G.save(); openProfile(); };
     $('set-name').onclick = rename;
     $('set-backup').onclick = backup;
@@ -125,9 +127,10 @@
     G.modal(first ? 'Küp Arena’ya hoş geldin!' : 'Nasıl oynanır?', `
       <ul class="howto">
         <li><b>Macera:</b> 6 dünyayı geç, boss’ları yen, yıldız topla. Her boss sana nadir bir bulmaca verir.</li>
-        <li><b>Mağaza:</b> Paket aç, yeni bulmacalar bul. Her 3 saatte bedava paket!</li>
+        <li><b>Mağaza:</b> Paket aç, yeni bulmacalar bul. Her 3 saatte bedava paket, her gün Şans Çarkı!</li>
         <li><b>Envanter:</b> En iyi 3 bulmacanı takıma koy, jetonla güçlendir.</li>
-        <li><b>Savaş:</b> Küp &gt; Piramit &gt; Özel &gt; Küp. Avantajlı bulmacayla daha çok hasar verirsin.</li>
+        <li><b>Savaş:</b> Saldır’a bas, ibre yeşilin ortasındayken dokun: <b>MÜKEMMEL</b> vuruş! Küp &gt; Piramit &gt; Özel &gt; Küp.</li>
+        <li><b>Seri ve sandık:</b> Üst üste kazan, bonus jeton al. Her 3 galibiyette Zafer Sandığı açılır.</li>
         <li><b>Arena:</b> Kupa topla, ligini yükselt. Arkadaşınla aynı telefonda da oynayabilirsin.</li>
         <li><b>Çöz:</b> 3B küpü çöz, jeton kazan. Her gün yeni bir bulmaca var.</li>
         <li><b>Görevler</b> ve <b>başarımlar</b> sağ üstte. Oyuncu seviyen arttıkça ödül alırsın.</li>
@@ -159,5 +162,10 @@
   G.save();
   G.show('adv');
   if (!G.S.seenIntro) intro(true);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { G.ensureQuests(); G.renderHeader(); } });
+  else G.checkLogin();
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    G.ensureQuests(); G.renderHeader();
+    if (G.S.seenIntro && !G.inBattle() && !G.isModalOpen()) G.checkLogin();
+  });
 })();

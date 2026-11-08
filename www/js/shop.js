@@ -45,6 +45,9 @@
     $('gift-btn').disabled = giftLeft > 0;
     $('free-text').textContent = freeLeft <= 0 ? 'Bedava Klasik Paket hazır!' : `Sonraki: ${fmtLeft(freeLeft)}`;
     $('free-btn').disabled = freeLeft > 0;
+    const spun = S.wheelDay === G.dayIndex();
+    $('wheel-text').textContent = spun ? 'Yarın yine çevirebilirsin.' : 'Bugünkü bedava çevirme hazır!';
+    $('wheel-btn').disabled = spun;
 
     // Sahip olunan paketler
     const owned = D.PACKS.filter(p => S.packs[p.id] > 0);
@@ -94,11 +97,69 @@
 
   $('gift-btn').onclick = () => {
     if (G.S.lastGift + G.GIFT_MS > Date.now()) return;
-    G.S.lastGift = Date.now(); G.addCoins(150); G.save(); render(); G.toast('+150 jeton!');
+    G.S.lastGift = Date.now(); G.addCoins(150); G.save(); render(); G.toast('+150 jeton!'); window.FX.coins(8, $('gift-btn'));
   };
   $('free-btn').onclick = () => {
     if (G.S.lastFree + G.FREE_MS > Date.now()) return;
     G.S.lastFree = Date.now(); G.save(); render(); G.openPack(packById('klasik'));
+  };
+
+  // ---------- Şans çarkı ----------
+  const WHEEL = [
+    { t: '50', c: '#ffcc1f', w: 20, coins: 50 }, { t: 'Klasik', c: '#2a7bff', w: 15, pack: 'klasik' },
+    { t: '150', c: '#ff8a1f', w: 17, coins: 150 }, { t: '100 XP', c: '#2fcf73', w: 15, xp: 100 },
+    { t: '300', c: '#ffcc1f', w: 10, coins: 300 }, { t: 'Usta', c: '#7b4dff', w: 10, pack: 'usta' },
+    { t: '75', c: '#22d3ee', w: 10, coins: 75 }, { t: 'Efsane', c: '#ff4f9a', w: 3, pack: 'efsane' },
+  ];
+  function drawWheel(cv) {
+    const { width: w } = cv;
+    const ctx = cv.getContext('2d'), r = w / 2, n = WHEEL.length, a = Math.PI * 2 / n;
+    WHEEL.forEach((seg, i) => {
+      ctx.beginPath(); ctx.moveTo(r, r); ctx.arc(r, r, r, -Math.PI / 2 + i * a, -Math.PI / 2 + (i + 1) * a); ctx.closePath();
+      ctx.fillStyle = seg.c; ctx.fill(); ctx.lineWidth = w * 0.012; ctx.strokeStyle = '#1d1446'; ctx.stroke();
+      ctx.save(); ctx.translate(r, r); ctx.rotate(-Math.PI / 2 + (i + 0.5) * a);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.font = `800 ${w * 0.065}px "Baloo 2", sans-serif`;
+      ctx.lineWidth = w * 0.014; ctx.strokeStyle = '#1d1446'; ctx.strokeText(seg.t, r * 0.88, 0);
+      ctx.fillStyle = '#fff'; ctx.fillText(seg.t, r * 0.88, 0);
+      ctx.restore();
+    });
+  }
+  $('wheel-btn').onclick = () => {
+    const S = G.S;
+    if (S.wheelDay === G.dayIndex()) return;
+    const body = G.modal('Şans Çarkı', `<div class="wheel-wrap"><canvas width="600" height="600"></canvas><span class="wheel-hub"></span></div><p id="wheel-res">Çevirmek için düğmeye bas!</p>`,
+      [{ label: 'Çevir!', cls: 'btn-pink', keep: true, onClick: spin }], { replace: true });
+    if (!body) return;
+    const cv = body.querySelector('canvas');
+    drawWheel(cv);
+    let spinning = false;
+    function spin() {
+      if (spinning || S.wheelDay === G.dayIndex()) return;
+      spinning = true;
+      const total = WHEEL.reduce((a, b) => a + b.w, 0);
+      let x = Math.random() * total, i = 0;
+      for (; i < WHEEL.length; i++) { x -= WHEEL[i].w; if (x < 0) break; }
+      const seg = WHEEL[Math.min(i, WHEEL.length - 1)], idx = WHEEL.indexOf(seg);
+      S.wheelDay = G.dayIndex();
+      G.save();
+      const a = 360 / WHEEL.length;
+      const target = 360 * 6 - (idx + 0.5) * a + (Math.random() - 0.5) * a * 0.6;
+      cv.style.transform = `rotate(${target}deg)`;
+      Snd.shake();
+      document.querySelectorAll('#modal-actions .btn').forEach(b => (b.disabled = true));
+      setTimeout(() => {
+        if (seg.coins) { G.addCoins(seg.coins); window.FX.coins(8); }
+        if (seg.xp) G.addXP(seg.xp);
+        if (seg.pack) S.packs[seg.pack]++;
+        G.save();
+        Snd.reveal(seg.pack === 'efsane' ? 4 : 2);
+        window.FX.confetti(60);
+        const txt = seg.coins ? `+${seg.coins} jeton!` : seg.xp ? `+${seg.xp} XP!` : `${D.PACKS.find(p => p.id === seg.pack).name} kazandın! Paketlerin bölümünde.`;
+        const res = document.getElementById('wheel-res'); if (res) res.innerHTML = `<b>${txt}</b>`;
+        const row = document.getElementById('modal-actions');
+        if (row) { row.innerHTML = ''; const b = h('button', 'btn btn-yellow', 'Harika!'); b.onclick = () => { G.closeModal(); render(); }; row.appendChild(b); }
+      }, 4100);
+    }
   };
 
   function buy(pack) {
@@ -154,6 +215,8 @@
     rv.style.animation = 'none'; void rv.offsetWidth; rv.style.animation = '';
     R.drawPuzzle($('rv-canvas'), def);
     Snd.reveal(r.order);
+    setTimeout(() => window.FX.burstAt($('rv-canvas'), r.color, 20 + r.order * 12, 6 + r.order), 120);
+    if (r.order >= 3) window.FX.confetti(60 + r.order * 20);
     if (r.order >= 3 && navigator.vibrate) { try { navigator.vibrate([60, 40, 120]); } catch (e) {} }
     const again = $('open-again');
     if (paid) { again.hidden = false; again.textContent = `Bir tane daha (${pack.price})`; again.disabled = G.S.coins < pack.price; }

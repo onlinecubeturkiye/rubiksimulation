@@ -41,7 +41,19 @@
   const myTeam = () => G.S.team.map(id => ({ id, lvl: G.level(id) }));
 
   // ---------- Harita ----------
+  const CHEST_SVG = '<svg class="chest-ico" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 20h36v20a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V20Z" fill="#ff8a1f" stroke="#1d1446" stroke-width="3"/><path d="M6 20c0-8 6-13 18-13s18 5 18 13H6Z" fill="#ffcc1f" stroke="#1d1446" stroke-width="3"/><rect x="20" y="17" width="8" height="10" rx="2" fill="#fff" stroke="#1d1446" stroke-width="3"/></svg>';
+  const FLAME_SVG = '<svg class="flame" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4c3 8 12 12 12 24a12 12 0 0 1-24 0c0-6 3-9 5-12 1 4 3 6 5 6-2-6 0-12 2-18Z" fill="#ff8a1f" stroke="#1d1446" stroke-width="3" stroke-linejoin="round"/><path d="M24 26c2 3 6 5 6 10a6 6 0 0 1-12 0c0-3 2-5 3-6 1 2 2 2 3 2-1-2 0-4 0-6Z" fill="#ffcc1f"/></svg>';
+  function renderTop() {
+    const S = G.S, ready = S.keys >= 3;
+    $('adv-top').innerHTML = `
+      <button class="chest-card${ready ? ' ready' : ''}" id="chest-btn">${CHEST_SVG}<div><b>Zafer Sandığı</b>
+        <small>${ready ? 'Açmaya hazır!' : `${3 - S.keys} galibiyet daha`}</small><span class="keys">${[0, 1, 2].map(i => `<i class="${i < S.keys ? 'on' : ''}"></i>`).join('')}</span></div></button>
+      <div class="streak-card">${FLAME_SVG}<div><b>Seri: ${S.streak}</b><small>${S.streak >= 1 ? `Sonraki galibiyet: +${Math.min(S.streak + 1, 10) * 5}` : 'Üst üste kazan, bonus al'}</small></div></div>`;
+    $('chest-btn').onclick = () => G.openChest();
+  }
+
   function render() {
+    renderTop();
     const total = G.totalStars();
     $('adv-stars').textContent = `${total}/${ALL.length * 3}`;
     const wrap = $('worlds'); wrap.innerHTML = '';
@@ -118,10 +130,11 @@
       mode: 'stage', title: `${st.w.name} · ${st.label}`, bg: st.w.bg, nameB: st.type === 'boss' ? st.w.boss.name : st.w.name,
       teamA: myTeam(), teamB: enemyTeam(st),
       onEnd: (res) => {
-        if (!res.won) return lost(st);
+        const bonus = G.afterBattle(res);
+        if (!res.won) return lost(st, bonus);
         G.bump('wins');
         const s = res.koA === 0 ? 3 : res.koA === 1 ? 2 : 1;
-        finish(st, s);
+        finish(st, s, bonus);
       },
     });
   }
@@ -139,15 +152,15 @@
     });
   }
 
-  function lost(st) {
+  function lost(st, bonus) {
     G.bump('losses');
     G.addCoins(10); G.addXP(10); G.save();
-    G.modal('Kaybettin', `<p>Teselli: +10 jeton, +10 XP.</p>
+    G.modal('Kaybettin', `<p>Teselli: +10 jeton, +10 XP.</p>${bonus ? bonus.html : ''}
       <ul class="tips"><li>Paket açarak yeni bulmacalar bul.</li><li>Envanter’de bulmacalarını jetonla güçlendir.</li><li>Tür avantajını kullan: Küp &gt; Piramit &gt; Özel &gt; Küp.</li><li>Zorlanırsan önceki bölümleri tekrar oynayıp jeton topla.</li></ul>`,
       [{ label: 'Haritaya dön', onClick: render }, { label: 'Tekrar dene', cls: 'btn-pink', onClick: () => preview(st) }]);
   }
 
-  function finish(st, s) {
+  function finish(st, s, bonus) {
     const S = G.S;
     const prev = stars(st), first = !prev;
     S.adv.stars[st.id] = Math.max(prev, s);
@@ -167,10 +180,11 @@
     const k = ALL.indexOf(st), next = ALL[k + 1];
     const body = G.modal(st.type === 'solve' ? 'Çözdün!' : 'Kazandın!', `
       <div class="stars-big">${[0, 1, 2].map(i => `<span class="${i < s ? 'on' : ''}" style="animation-delay:${i * 0.25}s">★</span>`).join('')}</div>
-      <p>+${rw.coins} jeton · +${rw.xp} XP${s > prev && !first ? ' · Yeni yıldız rekoru!' : ''}</p>${extra}`,
+      <p>+${rw.coins} jeton · +${rw.xp} XP${s > prev && !first ? ' · Yeni yıldız rekoru!' : ''}</p>${bonus ? bonus.html : ''}${extra}`,
       [{ label: 'Haritaya dön', onClick: () => { G.show('adv'); render(); } },
        ...(next ? [{ label: `Sonraki: ${next.label}`, cls: 'btn-yellow', onClick: () => { G.show('adv'); render(); preview(next); } }] : [])]);
     for (let i = 0; i < s; i++) setTimeout(() => window.Sound.star(i), 250 + i * 250);
+    window.FX.coins(6);
     if (body && body.querySelector('#boss-rw')) R.drawPuzzle(body.querySelector('#boss-rw'), cubeById(st.w.reward));
     render();
   }
@@ -218,11 +232,12 @@
       teamA: myTeam(), teamB: enemy,
       onEnd: (res) => {
         const S = G.S;
+        const bonus = G.afterBattle(res);
         if (!res.won) {
           G.bump('losses');
           const reached = f - 1;
           run = null; G.save(); renderTower();
-          G.modal('Kule bitti', `<div class="big-num">Kat ${f}</div><p>Bu katta durdun. ${reached > 0 ? `${reached}. kata kadar çıktın.` : ''}</p><p class="note">Sonraki tırmanış Kat ${S.towerCheckpoint + 1}’den başlar.</p>`,
+          G.modal('Kule bitti', `<div class="big-num">Kat ${f}</div><p>Bu katta durdun. ${reached > 0 ? `${reached}. kata kadar çıktın.` : ''}</p><p class="note">Sonraki tırmanış Kat ${S.towerCheckpoint + 1}’den başlar.</p>${bonus.html}`,
             [{ label: 'Tamam', cls: 'btn-yellow' }]);
           return;
         }
@@ -233,7 +248,8 @@
         G.addCoins(coins); G.addXP(15 + Math.floor(f / 2));
         run.floor = f + 1;
         G.save(); renderTower();
-        G.modal(`Kat ${f} geçildi!`, `<p>+${coins} jeton</p>${note}<p class="note">Sıradaki kat daha zor. Devam et ya da mola ver.</p>`,
+        window.FX.coins(5);
+        G.modal(`Kat ${f} geçildi!`, `<p>+${coins} jeton</p>${bonus.html}${note}<p class="note">Sıradaki kat daha zor. Devam et ya da mola ver.</p>`,
           [{ label: 'Mola ver', onClick: () => { run = null; renderTower(); } }, { label: `Kat ${f + 1}`, cls: 'btn-pink', onClick: climb }]);
       },
     });

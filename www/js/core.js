@@ -25,7 +25,8 @@
       packs: { klasik: 0, usta: 0, efsane: 0 },
       lastGift: 0, lastFree: 0, dealDay: -1,
       stats, best: {}, adv: { stars: {}, bosses: [] }, towerCheckpoint: 0,
-      quests: null, ach: {}, settings: { sound: true }, seenIntro: false, dailyDone: -1,
+      quests: null, ach: {}, settings: { sound: true, power: true }, seenIntro: false, dailyDone: -1,
+      streak: 0, bestStreak: 0, keys: 0, login: { day: -1, streak: 0 }, wheelDay: -1,
     };
   }
   function migrate(s) {
@@ -34,7 +35,8 @@
     out.stats = Object.assign(defaults().stats, s.stats || {});
     out.packs = Object.assign(d.packs, s.packs || {});
     out.adv = Object.assign({ stars: {}, bosses: [] }, s.adv || {});
-    out.settings = Object.assign({ sound: true }, s.settings || {});
+    out.settings = Object.assign({ sound: true, power: true }, s.settings || {});
+    out.login = Object.assign({ day: -1, streak: 0 }, s.login || {});
     if (!s.lvl) { out.lvl = {}; for (const id in out.inv) out.lvl[id] = Math.min(10, out.inv[id]); }
     if (!s.v) out.seenIntro = true; // eski oyuncular rehberi tekrar görmesin
     out.team = (out.team || []).filter(id => out.inv[id]).slice(0, 3);
@@ -151,6 +153,67 @@
     return any || bonus;
   };
 
+  // ---------- Savaş sonrası bonuslar: seri, sandık anahtarı, mükemmel vuruş ----------
+  G.afterBattle = function (res) {
+    const S = G.S, lines = [];
+    S.stats.maxCombo = Math.max(S.stats.maxCombo || 0, res.maxCombo || 0);
+    if (!res.won) {
+      if (S.streak >= 2) lines.push(['Seri bitti', `${S.streak} galibiyet`]);
+      S.streak = 0;
+      return { coins: 0, html: lines.length ? bonusHtml(lines) : '' };
+    }
+    S.streak++; S.bestStreak = Math.max(S.bestStreak || 0, S.streak);
+    let coins = 0;
+    if (res.perfects) { const c = res.perfects * 5; coins += c; lines.push([`Mükemmel vuruş ×${res.perfects}`, `+${c}`]); }
+    if (S.streak >= 2) { const c = Math.min(S.streak, 10) * 5; coins += c; lines.push([`Galibiyet serisi ×${S.streak}`, `+${c}`]); }
+    if (S.keys < 3) { S.keys++; lines.push(['Sandık anahtarı', `${S.keys}/3`]); }
+    if (coins) G.addCoins(coins);
+    return { coins, html: bonusHtml(lines) };
+  };
+  function bonusHtml(lines) {
+    return `<div class="bonus-list">${lines.map(([a, b]) => `<span><span>${a}</span><b>${b}</b></span>`).join('')}</div>`;
+  }
+
+  // ---------- Zafer sandığı ----------
+  G.openChest = function () {
+    const S = G.S;
+    if (S.keys < 3) return G.toast(`Sandık için ${3 - S.keys} galibiyet daha`);
+    S.keys = 0;
+    const r = Math.random();
+    const pack = r < 0.08 ? 'efsane' : r < 0.4 ? 'usta' : 'klasik';
+    const coins = 80 + ((Math.random() * 5) | 0) * 20;
+    G.addCoins(coins);
+    G.save();
+    window.FX.confetti(80); window.FX.coins(8);
+    const p = D.PACKS.find(x => x.id === pack);
+    G.modal('Zafer Sandığı!', `<div class="big-num">+${coins}</div><p>jeton ve bir <b>${esc(p.name)}</b>!</p>`,
+      [{ label: 'Paketi aç', cls: 'btn-yellow', onClick: () => G.openPack(p) }], { replace: true });
+    if (G.renderAdventure) G.renderAdventure();
+  };
+
+  // ---------- Günlük giriş takvimi ----------
+  const LOGIN = [
+    { t: '100 jeton', coins: 100 }, { t: 'Klasik Paket', pack: 'klasik' }, { t: '200 jeton', coins: 200 },
+    { t: 'Usta Paketi', pack: 'usta' }, { t: '300 jeton', coins: 300 }, { t: '2 Klasik', pack: 'klasik', n: 2 },
+    { t: 'Efsane Paketi', pack: 'efsane' },
+  ];
+  G.checkLogin = function () {
+    const S = G.S, today = dayIndex();
+    if (S.login.day === today) return false;
+    const next = S.login.day === today - 1 ? (S.login.streak % 7) + 1 : 1;
+    const cells = LOGIN.map((r, i) => `<div class="${i + 1 < next ? 'got' : ''}${i + 1 === next ? ' today' : ''}${i === 6 ? ' big' : ''}"><span>Gün ${i + 1}</span><b>${r.t}</b></div>`).join('');
+    G.modal('Günlük giriş', `<p>Her gün gel, ödüller büyüsün! Bir gün kaçırırsan baştan başlar.</p><div class="cal">${cells}</div>`,
+      [{ label: `${LOGIN[next - 1].t} al`, cls: 'btn-yellow', onClick: () => {
+        const r = LOGIN[next - 1];
+        S.login = { day: today, streak: next };
+        if (r.coins) { G.addCoins(r.coins); window.FX.coins(8); }
+        if (r.pack) S.packs[r.pack] += r.n || 1;
+        G.save();
+        G.toast(r.pack ? `${r.t} Mağaza’da seni bekliyor!` : `+${r.coins} jeton!`);
+      } }]);
+    return true;
+  };
+
   // ---------- Üst bar ----------
   function renderHeader() {
     const S = G.S;
@@ -161,7 +224,9 @@
     if (S.quests) $('quest-btn').classList.toggle('dot', G.questsClaimable());
     const packCount = S.packs.klasik + S.packs.usta + S.packs.efsane;
     const shopTab = document.querySelector('[data-tab=shop]');
-    if (shopTab) shopTab.classList.toggle('dot', packCount > 0 || S.lastGift + G.GIFT_MS <= Date.now() || S.lastFree + G.FREE_MS <= Date.now());
+    if (shopTab) shopTab.classList.toggle('dot', packCount > 0 || S.lastGift + G.GIFT_MS <= Date.now() || S.lastFree + G.FREE_MS <= Date.now() || S.wheelDay !== dayIndex());
+    const advTab = document.querySelector('[data-tab=adv]');
+    if (advTab) advTab.classList.toggle('dot', S.keys >= 3);
   }
   G.renderHeader = renderHeader;
   G.GIFT_MS = 20 * 3600 * 1000;

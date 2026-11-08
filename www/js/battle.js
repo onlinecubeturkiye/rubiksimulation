@@ -22,21 +22,23 @@
   const cur = (s) => B[s].list[B[s].idx];
   const alive = (s) => B[s].list.filter(f => f.hp > 0);
   const isHuman = (s) => (s === 'A' ? !B.auto : B.mode === 'pvp');
-  const pace = (ms) => wait(B && B.fast ? ms * 0.55 : ms);
+  const pace = (ms) => wait(ms * (B && B.fast ? 0.5 : 0.8));
+  const powerOn = () => G.S.settings.power !== false;
 
   G.battle = function (cfg) {
     B = {
       mode: cfg.mode, cfg, auto: false, fast: false, over: false, resolve: null, turnSide: 'A',
       A: { list: cfg.teamA.map(mkF), idx: 0, name: cfg.nameA || G.S.name },
       B: { list: cfg.teamB.map(mkF), idx: 0, name: cfg.nameB || 'Rakip' },
-      skillsUsed: 0,
+      skillsUsed: 0, combo: { A: 0, B: 0 }, perfects: { A: 0, B: 0 }, maxCombo: 0,
     };
     $('b-title').textContent = cfg.title || 'Savaş';
-    $('battle').style.setProperty('--bbg', cfg.bg || 'radial-gradient(120% 70% at 50% 0%, #3b1f86, #1a0f3a 70%)');
+    $('battle').style.setProperty('--bbg', cfg.bg || 'linear-gradient(180deg, #2a7bff, #5fd0ff)');
     $('b-auto').hidden = cfg.mode === 'pvp';
     $('b-auto').textContent = 'Oto: Kapalı';
     $('b-quit').textContent = cfg.mode === 'pvp' ? 'Bitir' : 'Pes et';
     $('battle').hidden = false;
+    $('power').hidden = true; $('b-acts').hidden = false;
     B.drawn = {};
     renderAll();
     say(`<b>${esc(B.B.name)}</b> ile savaş başladı!`);
@@ -70,6 +72,7 @@
       if (B.mode === 'pvp') Snd.turn();
       act = await new Promise(res => (B.resolve = res));
       B.resolve = null;
+      if (B && !B.over && powerOn() && (act.kind === 'atk' || act.kind === 'skill') && isHuman(side)) act.power = await powerBar(side);
     } else {
       await pace(side === 'A' ? 350 : 550);
       if (!B || B.over) return;
@@ -96,6 +99,51 @@
     return { kind: 'atk' };
   }
 
+  // Güç çubuğu: ibre gidip gelir, doğru anda dokunan daha çok vurur.
+  function powerBar(side) {
+    return new Promise(res => {
+      const el = $('power'), needle = el.querySelector('.power-needle');
+      el.hidden = false; $('b-acts').hidden = true;
+      const combo = B.combo[side];
+      $('power-combo').textContent = combo > 1 ? `Kombo ×${combo}` : '';
+      el.querySelectorAll('.power-result').forEach(x => x.remove());
+      const period = Math.max(600, 1100 - combo * 70);
+      const t0 = performance.now();
+      let raf, done = false, p = 0;
+      const step = (now) => {
+        const t = ((now - t0) % (period * 2)) / period;
+        p = t <= 1 ? t : 2 - t;
+        needle.style.left = (p * 100) + '%';
+        if (now - t0 > 4500) return finish();
+        raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+      const finish = () => {
+        if (done) return; done = true;
+        cancelAnimationFrame(raf);
+        el.onpointerdown = null; window.removeEventListener('keydown', key);
+        const dist = Math.abs(p - 0.5);
+        let m, txt;
+        if (dist < 0.05) { m = 1.5; txt = 'MÜKEMMEL!'; }
+        else if (dist < 0.1) { m = 1.2; txt = 'Harika!'; }
+        else if (dist < 0.22) { m = 1; txt = 'İyi'; }
+        else { m = 0.75; txt = 'Kaçtı!'; }
+        if (B) {
+          if (m >= 1.5) { B.combo[side]++; B.perfects[side]++; B.maxCombo = Math.max(B.maxCombo, B.combo[side]); }
+          else if (m < 1) B.combo[side] = 0;
+        }
+        const r = h('div', 'power-result', txt);
+        el.appendChild(r);
+        if (m >= 1.5) { Snd.star(2); window.FX.burstAt(needle, '#2fcf73', 14, 5); }
+        else if (m < 1) Snd.lose();
+        setTimeout(() => { el.hidden = true; $('b-acts').hidden = false; res({ m, txt }); }, 420);
+      };
+      const key = (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); finish(); } };
+      el.onpointerdown = (e) => { e.preventDefault(); finish(); };
+      window.addEventListener('keydown', key);
+    });
+  }
+
   function rollDmg(a, d, k) {
     let dmg = a.atk * rand(0.85, 1.15) * k;
     const e = eff(a, d);
@@ -104,11 +152,15 @@
     if (crit) dmg *= 1.5;
     return { dmg: Math.max(1, Math.round(dmg)), crit, e };
   }
-  function hit(dSide, dmg) {
+  function hit(dSide, dmg, big) {
     const d = cur(dSide);
     if (d.shield > 0) { dmg = Math.max(1, Math.round(dmg / 2)); d.shield--; }
     d.hp = Math.max(0, d.hp - dmg);
-    anim(dSide, 'hit'); floatNum(dSide, '-' + dmg);
+    anim(dSide, 'hit'); floatNum(dSide, '-' + dmg, false, big);
+    const fel = $('b-' + dSide).querySelector('.fighter canvas');
+    window.FX.burstAt(fel, big ? null : '#ffcc1f', big ? 26 : 10, big ? 8 : 5);
+    if (big || dmg > d.max * 0.3) window.FX.shake($('battle'));
+    if (navigator.vibrate && big) { try { navigator.vibrate(40); } catch (e) {} }
     Snd.hit();
     return dmg;
   }
@@ -128,23 +180,25 @@
     if (act.kind === 'quit') return;
     const a = cur(side), d = cur(dSide);
     const who = `<b>${esc(a.label)}</b>`;
+    const pm = act.power ? act.power.m : 1, big = pm >= 1.5;
+    const ptxt = act.power ? (big ? ' <b class="good">Mükemmel vuruş!</b>' : pm < 1 ? ' Iska gibi…' : '') : '';
     anim(side, 'lunge');
     await pace(180);
     if (!B || B.over) return;
     if (act.kind === 'atk') {
-      const r = rollDmg(a, d, 1);
-      const dealt = hit(dSide, r.dmg);
-      say(`${who} saldırdı: ${dealt} hasar${r.crit ? ' (kritik!)' : ''}.${effText(r.e)}`);
+      const r = rollDmg(a, d, pm);
+      const dealt = hit(dSide, r.dmg, big || r.crit);
+      say(`${who} saldırdı: ${dealt} hasar${r.crit ? ' (kritik!)' : ''}.${effText(r.e)}${ptxt}`);
     } else {
       const sk = D.SKILLS[a.def.skill];
       a.cd = 3;
       if (side === 'A' || B.mode === 'pvp') { G.bump('skills'); }
       Snd.skill();
-      if (a.def.skill === 'double') { const r = rollDmg(a, d, 2); const dealt = hit(dSide, r.dmg); say(`${who} ${sk.name}: ${dealt} hasar!${effText(r.e)}`); }
-      else if (a.def.skill === 'heal') { const v = Math.min(a.max - a.hp, Math.round(a.max * 0.35)); a.hp += v; floatNum(side, '+' + v, true); Snd.heal(); say(`${who} ${sk.name} ile ${v} can yeniledi`); }
-      else if (a.def.skill === 'stun') { const r = rollDmg(a, d, 0.6); const dealt = hit(dSide, r.dmg); d.stun = true; say(`${who} ${sk.name}: ${dealt} hasar, rakip sersemledi!${effText(r.e)}`); }
-      else if (a.def.skill === 'shield') { a.shield = 2; const r = rollDmg(a, d, 0.5); const dealt = hit(dSide, r.dmg); say(`${who} ${sk.name} açtı ve ${dealt} hasar verdi.`); }
-      else if (a.def.skill === 'drain') { const r = rollDmg(a, d, 1.2); const dealt = hit(dSide, r.dmg); const v = Math.min(a.max - a.hp, Math.round(dealt / 2)); a.hp += v; if (v) floatNum(side, '+' + v, true); say(`${who} ${sk.name}: ${dealt} hasar, ${v} can aldı.${effText(r.e)}`); }
+      if (a.def.skill === 'double') { const r = rollDmg(a, d, 2 * pm); const dealt = hit(dSide, r.dmg, big); say(`${who} ${sk.name}: ${dealt} hasar!${effText(r.e)}`); }
+      else if (a.def.skill === 'heal') { const v = Math.min(a.max - a.hp, Math.round(a.max * 0.35 * pm)); a.hp += v; window.FX.burstAt($('b-' + side).querySelector('.fighter canvas'), '#2fcf73', 14, 4); floatNum(side, '+' + v, true); Snd.heal(); say(`${who} ${sk.name} ile ${v} can yeniledi`); }
+      else if (a.def.skill === 'stun') { const r = rollDmg(a, d, 0.6 * pm); const dealt = hit(dSide, r.dmg, big); d.stun = true; say(`${who} ${sk.name}: ${dealt} hasar, rakip sersemledi!${effText(r.e)}`); }
+      else if (a.def.skill === 'shield') { a.shield = 2; const r = rollDmg(a, d, 0.5 * pm); const dealt = hit(dSide, r.dmg, big); say(`${who} ${sk.name} açtı ve ${dealt} hasar verdi.`); }
+      else if (a.def.skill === 'drain') { const r = rollDmg(a, d, 1.2 * pm); const dealt = hit(dSide, r.dmg, big); const v = Math.min(a.max - a.hp, Math.round(dealt / 2)); a.hp += v; if (v) floatNum(side, '+' + v, true); say(`${who} ${sk.name}: ${dealt} hasar, ${v} can aldı.${effText(r.e)}`); }
     }
     renderAll();
     await pace(650);
@@ -168,7 +222,8 @@
 
   function end(wonA) {
     B.over = true;
-    const res = { won: wonA, koA: B.A.list.filter(f => f.hp <= 0).length, sizeA: B.A.list.length };
+    const res = { won: wonA, koA: B.A.list.filter(f => f.hp <= 0).length, sizeA: B.A.list.length, perfects: B.perfects.A, maxCombo: B.maxCombo };
+    if (wonA || B.mode === 'pvp') setTimeout(() => window.FX.confetti(), 350);
     const cb = B.cfg.onEnd;
     setTimeout(() => {
       $('battle').hidden = true;
@@ -186,10 +241,10 @@
     el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
     setTimeout(() => el.classList.remove(cls), 400);
   }
-  function floatNum(side, txt, heal) {
+  function floatNum(side, txt, heal, big) {
     const el = $('b-' + side).querySelector('.fighter');
     if (!el) return;
-    const f = h('span', 'float' + (heal ? ' heal' : ''), txt);
+    const f = h('span', 'float' + (heal ? ' heal' : '') + (big ? ' big' : ''), txt);
     el.appendChild(f); setTimeout(() => f.remove(), 900);
   }
 
@@ -220,7 +275,7 @@
     wrap.querySelector('.nm').textContent = f.label;
     const ty = D.TYPES[G.typeOf(f.def)];
     const e = eff(f, op);
-    const chips = [`<span>Sv ${f.lvl}</span>`, `<span class="fx" style="color:${ty.color}">${ty.name}</span>`];
+    const chips = [`<span>Sv ${f.lvl}</span>`, `<span class="fx" style="background:${ty.color}">${ty.name}</span>`];
     if (f.boss) chips.push('<span class="fx boss-chip">BOSS</span>');
     if (e > 1) chips.push('<span class="fx good">Avantajlı</span>');
     if (f.shield) chips.push(`<span class="fx">Kalkan ×${f.shield}</span>`);

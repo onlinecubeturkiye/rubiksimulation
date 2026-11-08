@@ -74,10 +74,11 @@
     if (!G.S.team.length) { G.toast('Önce Envanter’den takımına bulmaca ekle'); return; }
     const o = opp;
     G.battle({
-      mode: 'arena', title: `Arena · ${leagueOf(G.S.trophies).name}`, nameB: o.name,
+      mode: 'arena', bg: 'linear-gradient(170deg, #ff8a1f, #ff4f9a 55%, #7b4dff)', title: `Arena · ${leagueOf(G.S.trophies).name}`, nameB: o.name,
       teamA: G.S.team.map(id => ({ id, lvl: G.level(id) })), teamB: o.team,
       onEnd: (res) => {
         const S = G.S;
+        const bonus = G.afterBattle(res);
         const coins = res.won ? 40 + Math.round(o.tr / 40) : 10;
         const before = leagueOf(S.trophies);
         const tr = res.won ? 25 + ((Math.random() * 7) | 0) : -Math.min(15, S.trophies);
@@ -86,11 +87,12 @@
         G.addCoins(coins); G.addXP(res.won ? 30 : 10);
         G.save();
         opp = null;
+        if (res.won) window.FX.coins(6);
         const after = leagueOf(S.trophies);
         const up = after !== before && tr > 0;
         G.modal(res.won ? 'Kazandın!' : 'Kaybettin', `
           <div class="big-num">${tr >= 0 ? '+' : ''}${tr} kupa</div>
-          <p>+${coins} jeton · +${res.won ? 30 : 10} XP</p>
+          <p>+${coins} jeton · +${res.won ? 30 : 10} XP</p>${bonus.html}
           ${up ? `<p class="good">Yeni lig: <b>${after.name}</b>!</p>` : ''}
           ${res.won ? '' : '<p class="note">Takımını güçlendir ya da tür avantajı olan bulmacalar seç.</p>'}`,
           [{ label: 'Tamam', cls: 'btn-yellow', onClick: render }]);
@@ -132,7 +134,7 @@
   }
   function start(a, b) {
     G.battle({
-      mode: 'pvp', title: '2 Kişilik Maç', nameA: '1. Oyuncu', nameB: '2. Oyuncu',
+      mode: 'pvp', bg: 'linear-gradient(170deg, #19c0a8, #2a7bff)', title: '2 Kişilik Maç', nameA: '1. Oyuncu', nameB: '2. Oyuncu',
       teamA: a.map(id => ({ id, lvl: PVP_LVL })), teamB: b.map(id => ({ id, lvl: PVP_LVL })),
       onEnd: (res) => {
         G.bump('pvp'); G.save();
