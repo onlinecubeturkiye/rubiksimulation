@@ -4,7 +4,7 @@ Paket aç, küp topla, maceraya çık, savaş ve çöz. Telefonda (Android uygul
 
 ## Oyun
 
-- **Sandıklar:** Her galibiyette bir sandık (Tahta, Gümüş, Altın, Dev, Sihirli). 4 yuva, aynı anda bir sandığın kilidi açılır, jetonla hemen açılabilir. Rakip küplerini yenerek günde 10 taç topla, Taç Sandığı'nı aç.
+- **Küp kutuları:** Her galibiyette gerçek speedcube ambalajlarından esinlenen bir kutu (Karton, Pencereli, Premium, Koleksiyon, Şeffaf Vitrin). 4 raf, aynı anda bir kutu açılır, jetonla hemen açılabilir. Rakip küplerini yenerek günde 10 taç topla, Şampiyon Kutusu'nu aç.
 - **Enerji:** Savaşta yetenekler enerji harcar; enerji her turda dolar.
 - **İfadeler:** Savaşta ifade balonları gönder, bilgisayar rakip de cevap verir.
 
@@ -29,6 +29,10 @@ Paket aç, küp topla, maceraya çık, savaş ve çöz. Telefonda (Android uygul
 Sıra tabanlı. Saldırırken güç çubuğunu doğru anda durdur (MÜKEMMEL vuruş), rakip saldırırken halka kalkana değince SAVUN'a bas (hasar yarıya iner). Her bulmacanın saldırısı ve bir yeteneği var (3 turda bir). Tür avantajı: **Küp > Piramit > Özel > Küp** (1,3 kat hasar). Sıran gelince yedeğe dokunup bulmaca değiştirebilirsin. "Oto" ile savaş kendi kendine oynanır.
 
 İlerleme cihazda saklanır. Profil → Ayarlar → "Kaydı yedekle" ile kod alıp başka cihaza taşıyabilirsin.
+
+## RA ID (Rubik Academy hesabı)
+
+Giriş, rubikacademy.fun ile aynı Firebase projesini kullanır. Oyun kaydı `users/{uid}/kv/kup-arena` belgesinde durur. Sitede yapılacaklar: [docs/RUBIK_ACADEMY_ENTEGRASYON.md](docs/RUBIK_ACADEMY_ENTEGRASYON.md).
 
 ## Android APK
 

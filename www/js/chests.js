@@ -5,17 +5,71 @@
   const R = window.Render, Snd = window.Sound;
   const SLOTS = 4;
 
-  // ---------- Sandık çizimi ----------
+  // ---------- Küp kutusu çizimi (izometrik 3B ambalaj) ----------
+  const imgCache = {};
+  function cubeImg(id) {
+    if (imgCache[id]) return imgCache[id];
+    const c = document.createElement('canvas');
+    c.width = c.height = 160; c.style.width = c.style.height = '160px';
+    document.body.appendChild(c);
+    R.drawPuzzle(c, cubeById(id));
+    const url = c.toDataURL();
+    c.remove();
+    return (imgCache[id] = url);
+  }
+  const bil = (p, u, v) => { const a = [p[0][0] + (p[1][0] - p[0][0]) * u, p[0][1] + (p[1][1] - p[0][1]) * u], b = [p[3][0] + (p[2][0] - p[3][0]) * u, p[3][1] + (p[2][1] - p[3][1]) * u]; return [a[0] + (b[0] - a[0]) * v, a[1] + (b[1] - a[1]) * v]; };
+  const pts = (arr) => arr.map(p => p.map(n => +n.toFixed(1)).join(',')).join(' ');
+  let uid = 0;
   G.chestSVG = function (type, cls = '') {
-    const c = D.CHESTS[type];
-    return `<svg class="chest-svg ${cls}" viewBox="0 0 100 90" aria-hidden="true">
-      <g class="c-body"><rect x="10" y="40" width="80" height="44" rx="8" fill="${c.color}" stroke="#0b1033" stroke-width="5"/>
-      <rect x="10" y="40" width="80" height="12" fill="#0b1033" opacity=".18"/>
-      <rect x="22" y="40" width="9" height="44" fill="#0b1033" opacity=".28"/><rect x="69" y="40" width="9" height="44" fill="#0b1033" opacity=".28"/></g>
-      <g class="c-lid"><path d="M10 44 Q10 10 50 10 Q90 10 90 44 Z" fill="${c.lid}" stroke="#0b1033" stroke-width="5" stroke-linejoin="round"/>
-      <path d="M22 44 Q22 16 30 13 M78 44 Q78 16 70 13" stroke="#0b1033" stroke-width="5" opacity=".3" fill="none"/>
-      <path d="M24 22 Q50 8 76 22" stroke="#fff" stroke-width="4" opacity=".35" fill="none" stroke-linecap="round"/></g>
-      <rect x="40" y="34" width="20" height="20" rx="4" fill="#ffc928" stroke="#0b1033" stroke-width="4"/><circle cx="50" cy="44" r="3" fill="#0b1033"/>
+    const c = D.CHESTS[type], id = 'bx' + (uid++);
+    const LF = [[16, 44], [60, 66], [60, 108], [16, 86]];          // sol (ön) yüz
+    const RF = [[60, 66], [104, 44], [104, 86], [60, 108]];        // sağ yüz
+    const LID = [[60, 12], [107, 36], [60, 60], [13, 36]];         // kapak üstü
+    const RIML = [[13, 36], [60, 60], [60, 70], [13, 46]], RIMR = [[60, 60], [107, 36], [107, 46], [60, 70]];
+    const win = [bil(LF, 0.16, 0.2), bil(LF, 0.84, 0.2), bil(LF, 0.84, 0.86), bil(LF, 0.16, 0.86)];
+    const img = cubeImg(c.show);
+    const op = c.clear ? ' fill-opacity="0.38"' : '';
+    let inner = '';
+    if (c.clear) {
+      // şeffaf akrilik vitrin: küp kutunun içinde, altında kaide
+      inner = `<ellipse cx="60" cy="96" rx="26" ry="9" fill="#0b1033" opacity=".35"/><rect x="40" y="86" width="40" height="10" rx="3" fill="#ffc928" stroke="#0b1033" stroke-width="2.5"/>
+        <image href="${img}" x="28" y="40" width="64" height="64" class="b-glow"/>`;
+    }
+    let deco = '';
+    if (c.window) {
+      deco += `<clipPath id="${id}w"><polygon points="${pts(win)}"/></clipPath>
+        <polygon points="${pts(win)}" fill="#0b1033"/>
+        <image href="${img}" x="${win[0][0] - 6}" y="${win[0][1] - 4}" width="44" height="44" clip-path="url(#${id}w)"/>
+        <polygon points="${pts([bil(LF, 0.16, 0.2), bil(LF, 0.5, 0.2), bil(LF, 0.16, 0.6)])}" fill="#fff" opacity=".25"/>
+        <polygon points="${pts(win)}" fill="none" stroke="#0b1033" stroke-width="2.5"/>`;
+    } else if (!c.clear) {
+      // karton: üzerinde etiket
+      deco += `<polygon points="${pts([bil(LF, 0.2, 0.3), bil(LF, 0.8, 0.3), bil(LF, 0.8, 0.62), bil(LF, 0.2, 0.62)])}" fill="#fff8e8" stroke="#0b1033" stroke-width="2"/>
+        <polygon points="${pts([bil(LF, 0.28, 0.42), bil(LF, 0.72, 0.42), bil(LF, 0.72, 0.46), bil(LF, 0.28, 0.46)])}" fill="#c99a5b"/>
+        <polygon points="${pts([bil(LF, 0.28, 0.5), bil(LF, 0.6, 0.5), bil(LF, 0.6, 0.54), bil(LF, 0.28, 0.54)])}" fill="#c99a5b"/>`;
+    }
+    // sağ yüzde marka yazısı (yüzeyin eğimine uygun)
+    deco += `<text x="0" y="0" transform="matrix(1,-0.5,0,1,65,${type === 'tac' ? 81 : 80})" font-family="Baloo 2, Arial Black, sans-serif" font-weight="800" font-size="8.5" textLength="34" lengthAdjust="spacingAndGlyphs" fill="${c.label}" opacity="${c.clear ? 0.8 : 0.95}">${type === 'tac' ? '♛ ŞAMPİYON' : 'KÜP ARENA'}</text>`;
+    // kapak süsü
+    let lidDeco = `<polygon points="${pts([[60, 18], [100, 37], [60, 56], [20, 37]])}" fill="#fff" opacity=".08"/>`;
+    if (type === 'tahta') lidDeco += `<polygon points="32,26 41,21.5 88,46 79,50.5" fill="#e6c58f" stroke="#7a5426" stroke-width="1" opacity=".95"/><polygon points="79,50.5 88,46 88,56 79,60.5" fill="#e6c58f" opacity=".85"/>`;
+    if (type === 'altin') lidDeco += `<polygon points="${pts(LID)}" fill="none" stroke="#ffc928" stroke-width="1.5" opacity=".9"/><text transform="matrix(1,0.5,-1,0.5,48,30)" font-family="Baloo 2, sans-serif" font-weight="800" font-size="12" fill="#ffc928">PRO</text>`;
+    if (type === 'dev') lidDeco += `<path d="M60 26l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" fill="#ffc928" stroke="#0b1033" stroke-width="1.5"/>`;
+    if (type === 'gumus') lidDeco += `<polygon points="${pts([[60, 22], [92, 37], [60, 52], [28, 37]])}" fill="none" stroke="#fff" stroke-width="2" opacity=".5"/>`;
+    return `<svg class="chest-svg box-${type} ${cls}" viewBox="0 0 120 120" aria-hidden="true">
+      <ellipse cx="60" cy="110" rx="46" ry="8" fill="#0b1033" opacity=".25"/>
+      ${c.clear ? inner : ''}
+      <g class="c-body">
+        <polygon points="${pts(LF)}" fill="${c.color}"${op} stroke="#0b1033" stroke-width="3.5" stroke-linejoin="round"/>
+        <polygon points="${pts(RF)}" fill="${c.side}"${op} stroke="#0b1033" stroke-width="3.5" stroke-linejoin="round"/>
+        ${deco}
+      </g>
+      <g class="c-lid">
+        <polygon points="${pts(RIML)}" fill="${c.lid}"${op} stroke="#0b1033" stroke-width="3" stroke-linejoin="round" style="filter:brightness(.8)"/>
+        <polygon points="${pts(RIMR)}" fill="${c.lid}"${op} stroke="#0b1033" stroke-width="3" stroke-linejoin="round" style="filter:brightness(.62)"/>
+        <polygon points="${pts(LID)}" fill="${c.lid}"${op} stroke="#0b1033" stroke-width="3.5" stroke-linejoin="round"/>
+        ${lidDeco}
+      </g>
     </svg>`;
   };
 
@@ -59,8 +113,8 @@
   G.crownReady = () => { const c = G.crownState(); return c.n >= 10 && !c.got; };
   G.openCrownChest = function () {
     const c = G.crownState();
-    if (c.got) return G.toast('Bugünkü Taç Sandığı’nı açtın. Yarın yine 10 taç topla!');
-    if (c.n < 10) return G.toast(`Taç Sandığı için ${10 - c.n} taç daha. Rakip küplerini yenerek taç kazan!`);
+    if (c.got) return G.toast('Bugünkü Şampiyon Kutusu’nu açtın. Yarın yine 10 taç topla!');
+    if (c.n < 10) return G.toast(`Şampiyon Kutusu için ${10 - c.n} taç daha. Rakip küplerini yenerek taç kazan!`);
     c.got = true; G.save();
     openChest('tac');
   };
@@ -73,13 +127,13 @@
     slots().forEach((c, i) => {
       const st = stateOf(c);
       const b = h('button', `slot-chest ${st}`);
-      if (st === 'empty') b.innerHTML = '<span class="sc-empty">Boş yuva</span>';
+      if (st === 'empty') b.innerHTML = '<span class="sc-empty">Boş raf</span>';
       else {
         const def = D.CHESTS[c.type];
         const info = st === 'ready' ? '<b class="sc-open">AÇ!</b>'
           : st === 'unlocking' ? `<b class="sc-time">${fmt(c.end - now())}</b>`
-          : `<small>${fmt(def.mins * 60000)}</small><b class="sc-unlock">Kilidi aç</b>`;
-        b.innerHTML = `${G.chestSVG(c.type)}<span class="sc-name">${esc(def.name.replace(' Sandık', ''))}</span>${info}`;
+          : `<small>${fmt(def.mins * 60000)}</small><b class="sc-unlock">Aç</b>`;
+        b.innerHTML = `${G.chestSVG(c.type)}<span class="box-name">${esc(def.short)}</span>${info}`;
       }
       b.onclick = () => tapSlot(i);
       row.appendChild(b);
@@ -91,7 +145,7 @@
   function tapSlot(i) {
     const list = slots(), c = list[i], st = stateOf(c);
     Snd.click();
-    if (st === 'empty') return G.toast('Savaş kazan, sandık kazan! Boş yuvalar dolsun.');
+    if (st === 'empty') return G.toast('Savaş kazan, küp kutusu kazan! Boş raflar dolsun.');
     const def = D.CHESTS[c.type];
     if (st === 'ready') { list[i] = null; G.save(); renderSlots(); return openChest(c.type); }
     const left = st === 'unlocking' ? c.end - now() : def.mins * 60000;
@@ -99,10 +153,10 @@
     const body = G.modal(def.name, `
       <div class="chest-big">${G.chestSVG(c.type)}</div>
       <p>İçinde: <b>${def.cubes} küp</b> ve <b>${def.coins} jeton</b>${def.min ? ` · en az 1 <b>${D.RARITIES[def.min].name}</b>` : ''}</p>
-      <p>${st === 'unlocking' ? `Kilit açılıyor: <b>${fmt(left)}</b> kaldı` : `Kilidi açmak <b>${fmt(left)}</b> sürer.`}</p>
-      ${st === 'locked' && anyUnlocking() ? '<p class="note">Aynı anda tek sandığın kilidi açılabilir. Diğeri bitince bunu başlat.</p>' : ''}`,
+      <p>${st === 'unlocking' ? `Açılıyor: <b>${fmt(left)}</b> kaldı` : `Açılması <b>${fmt(left)}</b> sürer.`}</p>
+      ${st === 'locked' && anyUnlocking() ? '<p class="note">Aynı anda tek kutu açılabilir. Diğeri bitince bunu başlat.</p>' : ''}`,
       [
-        ...(st === 'locked' ? [{ label: 'Kilidi açmaya başla', cls: 'btn-green', disabled: anyUnlocking(), onClick: () => { c.end = now() + def.mins * 60000; G.save(); renderSlots(); } }] : []),
+        ...(st === 'locked' ? [{ label: 'Açmaya başla', cls: 'btn-green', disabled: anyUnlocking(), onClick: () => { c.end = now() + def.mins * 60000; G.save(); renderSlots(); } }] : []),
         { label: `Hemen aç (${cost})`, cls: 'btn-yellow', disabled: G.S.coins < cost, onClick: () => {
           if (G.S.coins < cost) return;
           G.S.coins -= cost; list[i] = null; G.save(); renderSlots(); openChest(c.type);

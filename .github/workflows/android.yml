@@ -30,6 +30,7 @@ jobs:
           npx cap add android
           npx capacitor-assets generate --android --iconBackgroundColor "#1a0f3a" --splashBackgroundColor "#1a0f3a"
           npx cap sync android
+          python3 scripts/patch-android.py
 
       - name: Set version
         run: |

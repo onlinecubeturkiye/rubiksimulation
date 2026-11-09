@@ -198,7 +198,7 @@
     if (res.perfects) { const c = res.perfects * 5; coins += c; lines.push([`Mükemmel vuruş ×${res.perfects}`, `+${c}`]); }
     if (S.streak >= 2) { const c = Math.min(S.streak, 10) * 5; coins += c; lines.push([`Galibiyet serisi ×${S.streak}`, `+${c}`]); }
     const chest = G.dropChest();
-    lines.push(chest ? ['Sandık kazandın', D.CHESTS[chest].name] : ['Sandık yuvaların dolu', 'Ana ekranda aç']);
+    lines.push(chest ? ['Kutu kazandın', D.CHESTS[chest].name] : ['Kutu rafın dolu', 'Ana ekranda aç']);
     if (G.event().id === 'coins') { coins += 50; lines.push(['Etkinlik: Çift Jeton', '+50']); }
     if (coins) G.addCoins(coins);
     return { coins, html: bonusHtml(lines) };

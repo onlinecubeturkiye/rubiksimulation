@@ -73,7 +73,8 @@
       ${G.auth.enabled ? `<h3>RA ID hesabı</h3>
       <div class="account">${G.auth.user
         ? `<span>Giriş yapıldı: <b>${esc(G.auth.user.email || G.auth.user.displayName || 'RA ID')}</b><br><small>İlerlemen buluta kaydediliyor.</small></span>
-           <div class="settings"><button class="btn btn-small" id="ra-out">Çıkış yap</button><button class="btn btn-small danger" id="ra-del">Hesabımı sil</button></div>`
+           <div class="settings"><button class="btn btn-small" id="ra-out">Çıkış yap</button><button class="btn btn-small danger" id="ra-del">Küp Arena kaydımı sil</button></div>
+           <small>RA ID hesabını tamamen silmek için: <a href="${G.auth.deleteUrl}" target="_blank" rel="noopener">rubikacademy.fun/ayarlar</a> → Hesabımı sil</small>`
         : `<span>Giriş yapmadın. ${G.auth.trialLeft() ? `${G.auth.trialLeft()} deneme maçın kaldı.` : 'Deneme maçların bitti.'}</span>
            <button class="btn btn-yellow" id="ra-in">RA ID ile giriş yap</button>`}</div>` : ''}
       <h3>Ayarlar</h3>
@@ -85,12 +86,12 @@
         <button class="btn btn-small" id="set-intro">Nasıl oynanır?</button>
         <button class="btn btn-small danger" id="set-reset">Oyunu sıfırla</button>
       </div>
-      <p class="note">Küp Arena v2.4 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
+      <p class="note">Küp Arena v2.5 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
     if (!body) return;
     if (G.auth.enabled) {
       if ($('ra-in')) $('ra-in').onclick = () => G.auth.openLogin('profile');
       if ($('ra-out')) $('ra-out').onclick = () => G.confirm('Çıkış yap?', 'Bu cihazdaki ilerleme kalır. Tekrar giriş yapınca buluttan devam edersin.', 'Çıkış yap', G.auth.signOut);
-      if ($('ra-del')) $('ra-del').onclick = () => G.confirm('Hesabın silinsin mi?', 'RA ID hesabın ve buluttaki Küp Arena kaydın kalıcı olarak silinir. Bu geri alınamaz.', 'Kalıcı olarak sil', G.auth.deleteAccount);
+      if ($('ra-del')) $('ra-del').onclick = () => G.confirm('Küp Arena kaydın silinsin mi?', 'Buluttaki Küp Arena ilerlemen kalıcı olarak silinir. RA ID hesabın ve Rubik Academy verilerin durur.', 'Kalıcı olarak sil', G.auth.deleteGameData);
     }
     $('set-power').onclick = () => { S.settings.power = S.settings.power === false; G.save(); openProfile(); };
     $('set-sound').onclick = () => { S.settings.sound = !S.settings.sound; Snd.setEnabled(S.settings.sound); G.save(); openProfile(); };
@@ -141,7 +142,7 @@
         <li><b>Mağaza:</b> Paket aç, yeni bulmacalar bul. Her 3 saatte bedava paket, her gün Şans Çarkı!</li>
         <li><b>Envanter:</b> En iyi 3 bulmacanı takıma koy, jetonla güçlendir.</li>
         <li><b>Savaş:</b> Saldır’a bas, ibre yeşilin ortasındayken dokun: <b>MÜKEMMEL</b> vuruş! Küp &gt; Piramit &gt; Özel &gt; Küp.</li>
-        <li><b>Seri ve sandık:</b> Üst üste kazan, bonus jeton al. Her 3 galibiyette Zafer Sandığı açılır.</li>
+        <li><b>Küp kutuları:</b> Her galibiyette bir küp kutusu kazanırsın. Açılınca içinden küpler çıkar.</li>
         <li><b>Arena:</b> Kupa topla, ligini yükselt. Arkadaşınla aynı telefonda da oynayabilirsin.</li>
         <li><b>Çöz:</b> 3B küpü çöz, jeton kazan. Her gün yeni bir bulmaca var.</li>
         <li><b>Görevler</b> ve <b>başarımlar</b> sağ üstte. Oyuncu seviyen arttıkça ödül alırsın.</li>

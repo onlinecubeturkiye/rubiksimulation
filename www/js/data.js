@@ -212,15 +212,16 @@
     { id: 'pvp1',    name: 'Dostluk Maçı',       desc: 'Arkadaşınla aynı telefonda oyna', stat: 'pvp',     target: 1,  reward: 100 },
   ];
 
-  // Sandıklar: galibiyetlerden düşer, 4 yuvaya girer, sırayla kilidi açılır.
+  // Küp kutuları (gerçek speedcube ambalajları gibi): galibiyetlerden düşer, 4 raf yerine girer, sırayla açılır.
+  // style: kutunun görünüşü (kraft karton, pencereli, premium siyah, koleksiyon, şeffaf vitrin, şampiyon).
   // odds: Yaygın, Nadir, Epik, Efsane, Mitik (yüzde); min: en az bu nadirlikte 1 küp garanti.
   const CHESTS = {
-    tahta:   { name: 'Tahta Sandık',   mins: 3,   cubes: 2,  coins: 40,  odds: [75, 22, 3, 0, 0],       color: '#c9893b', lid: '#8a5a22' },
-    gumus:   { name: 'Gümüş Sandık',   mins: 15,  cubes: 4,  coins: 90,  odds: [62, 30, 7, 1, 0],       color: '#b9c5d6', lid: '#7c8aa5' },
-    altin:   { name: 'Altın Sandık',   mins: 60,  cubes: 7,  coins: 220, odds: [50, 35, 12, 3, 0],      color: '#ffc928', lid: '#c98400', min: 'rare' },
-    dev:     { name: 'Dev Sandık',     mins: 180, cubes: 14, coins: 500, odds: [55, 32, 10, 3, 0],      color: '#3bdc6e', lid: '#1f9b46', min: 'epic' },
-    sihirli: { name: 'Sihirli Sandık', mins: 360, cubes: 6,  coins: 300, odds: [0, 45, 40, 13, 2],      color: '#8a5cff', lid: '#5a2fd0', min: 'legendary' },
-    tac:     { name: 'Taç Sandığı',    mins: 0,   cubes: 5,  coins: 150, odds: [55, 33, 10, 2, 0],      color: '#ff4f9a', lid: '#c0176a', min: 'rare' },
+    tahta:   { name: 'Karton Kutu',       short: 'Karton',     mins: 3,   cubes: 2,  coins: 40,  odds: [75, 22, 3, 0, 0],  color: '#c99a5b', lid: '#b07f43', side: '#9c6d35', label: '#f4e3c3', show: 'c2' },
+    gumus:   { name: 'Pencereli Kutu',    short: 'Pencereli',  mins: 15,  cubes: 4,  coins: 90,  odds: [62, 30, 7, 1, 0],  color: '#f4f6fb', lid: '#2e8cff', side: '#cfd6e6', label: '#2e8cff', show: 'c3', window: true },
+    altin:   { name: 'Premium Kutu',      short: 'Premium',    mins: 60,  cubes: 7,  coins: 220, odds: [50, 35, 12, 3, 0], color: '#22232e', lid: '#15161e', side: '#101118', label: '#ffc928', show: 'c3g', window: true, min: 'rare' },
+    dev:     { name: 'Koleksiyon Kutusu', short: 'Koleksiyon', mins: 180, cubes: 14, coins: 500, odds: [55, 32, 10, 3, 0], color: '#7b4dff', lid: '#5a2fd0', side: '#4a24ad', label: '#ffffff', show: 'c5', window: true, min: 'epic' },
+    sihirli: { name: 'Vitrin Kutusu',     short: 'Vitrin',     mins: 360, cubes: 6,  coins: 300, odds: [0, 45, 40, 13, 2], color: '#bfe9ff', lid: '#e6f7ff', side: '#9fd7f5', label: '#0b1033', show: 'c3c', clear: true, min: 'legendary' },
+    tac:     { name: 'Şampiyon Kutusu',   short: 'Şampiyon',   mins: 0,   cubes: 5,  coins: 150, odds: [55, 33, 10, 2, 0], color: '#e0283f', lid: '#ffc928', side: '#a3142a', label: '#ffc928', show: 'c3n', window: true, min: 'rare' },
   };
   // Düşme sırası (tekrar eder): çoğu tahta/gümüş, arada altın, nadiren dev ve sihirli.
   const CHEST_CYCLE = ['tahta', 'tahta', 'gumus', 'tahta', 'altin', 'gumus', 'tahta', 'gumus', 'tahta', 'altin',

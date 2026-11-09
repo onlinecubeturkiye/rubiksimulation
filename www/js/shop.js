@@ -26,7 +26,7 @@
     el.style.setProperty('--bg-pack', pack.bg);
     const cap = h('div', 'pack-cap'); cap.style.clipPath = CAP_CLIP;
     const main = h('div', 'pack-main'); main.style.clipPath = MAIN_CLIP;
-    main.innerHTML = `<div class="pack-logo">Küp<span>Arena</span></div><canvas class="pack-art"></canvas><div class="pack-title">${esc(pack.name).replace(' ', '<br>')}</div>`;
+    main.innerHTML = `<div class="pack-logo">Küp<span>Arena</span></div><canvas class="pack-art"></canvas><div class="pack-title">${esc(pack.name).replace(' ', '<br>')}</div><div class="pack-shade"></div><div class="pack-shine"></div>`;
     el.append(cap, main);
     requestAnimationFrame(() => R.drawPackArt(main.querySelector('canvas'), pack.art.map(cubeById)));
     return el;

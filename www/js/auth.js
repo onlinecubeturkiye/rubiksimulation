@@ -7,7 +7,8 @@
   const A = G.auth = { enabled: false, ready: false, user: null };
   G.TRIAL = 3;
   const cfg = window.FIREBASE_CONFIG;
-  A.needsLogin = () => A.enabled && A.ready && !A.user && (G.S.trial || 0) >= G.TRIAL;
+  // İnternet yoksa giriş istenmez (çevrimdışı oyuncu kilitli kalmasın)
+  A.needsLogin = () => A.enabled && A.ready && !A.user && navigator.onLine !== false && (G.S.trial || 0) >= G.TRIAL;
   A.trialLeft = () => Math.max(0, G.TRIAL - (G.S.trial || 0));
   if (!cfg || !window.firebase) return;
 
@@ -17,8 +18,9 @@
     const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(cfg);
     auth = app.auth(); db = app.firestore();
   } catch (e) { A.enabled = false; return; }
-  // Rubik Academy ile aynı projeyi kullanıyoruz: oyun verisi yalnızca bu koleksiyonda durur.
-  const ref = (uid) => db.collection('kupArena').doc(uid);
+  // Rubik Academy ile aynı proje. Oyun kaydı, sitenin mevcut kurallarına uyan tek bir belgede durur:
+  // users/{uid}/kv/kup-arena  { v: JSON metni, t: zaman }  (site bu anahtarı kendi senkronuna almaz)
+  const ref = (uid) => db.collection('users').doc(uid).collection('kv').doc('kup-arena');
 
   // ---------- Bulut kaydı ----------
   const score = (s) => (s.level || 1) * 100000 + (s.xp || 0) + ((s.stats && s.stats.wins) || 0) * 10 + Object.keys(s.inv || {}).length;
@@ -28,10 +30,7 @@
     clearTimeout(pushT);
     pushT = setTimeout(() => {
       const S = G.S;
-      ref(A.user.uid).set({
-        save: JSON.stringify(S), name: S.name, level: S.level, trophies: S.trophies,
-        updated: firebase.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true }).catch(() => {});
+      ref(A.user.uid).set({ v: JSON.stringify(S), t: Date.now() }).catch(() => {});
     }, 3000);
   }
   const origSave = G.save;
@@ -41,15 +40,18 @@
     pulling = true;
     try {
       const doc = await ref(u.uid).get();
-      const cloud = doc.exists && doc.data().save ? JSON.parse(doc.data().save) : null;
+      const cloud = doc.exists && doc.data().v ? JSON.parse(doc.data().v) : null;
       if (cloud && score(cloud) > score(G.S)) {
         G.loadState(cloud);
         G.toast('Bulut kaydın yüklendi!');
       }
     } catch (e) { /* çevrimdışıysa cihazdaki kayıtla devam */ }
     pulling = false;
-    G.S.account = { uid: u.uid, email: u.email || '', name: u.displayName || '' };
-    if (G.S.name === 'Oyuncu' && u.displayName) G.S.name = u.displayName.split(' ')[0].slice(0, 16);
+    // Rubik Academy profilindeki adı al (users/{uid} herkese açık okunur)
+    let raName = u.displayName || '';
+    try { const p = await db.collection('users').doc(u.uid).get(); if (p.exists && p.data().name) raName = p.data().name; } catch (e) {}
+    G.S.account = { uid: u.uid, email: u.email || '', name: raName };
+    if (G.S.name === 'Oyuncu' && raName) G.S.name = raName.slice(0, 16);
     G.save();
   }
 
@@ -73,21 +75,45 @@
     'auth/network-request-failed': 'İnternet bağlantısı yok. Bağlanıp tekrar dene.',
     'auth/popup-closed-by-user': 'Giriş penceresi kapatıldı.',
     'auth/requires-recent-login': 'Güvenlik için çıkış yapıp tekrar giriş yap, sonra yeniden dene.',
+    'kupa/site-opened': 'Rubik Academy sitesi açıldı. Google ile giriş yap, sonra “Küp Arena’ya dön”e bas.',
   };
   const errText = (e) => ERR[e && e.code] || 'Bir sorun oldu. Tekrar dene.';
 
-  async function google() {
-    const cap = window.Capacitor;
-    const FA = cap && cap.Plugins && cap.Plugins.FirebaseAuthentication;
-    if (FA && cap.isNativePlatform && cap.isNativePlatform()) {
-      // Android: yerel Google girişi, ardından aynı hesapla Firebase'e giriş
-      const r = await FA.signInWithGoogle();
-      const cred = firebase.auth.GoogleAuthProvider.credential(r.credential && r.credential.idToken);
-      await auth.signInWithCredential(cred);
-    } else {
-      await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+  const isNative = () => { const c = window.Capacitor; return !!(c && c.isNativePlatform && c.isNativePlatform()); };
+  // Telefonda Google, uygulama içi tarayıcıda giriş izni vermez. Bu yüzden Rubik Academy sitesine gidilir,
+  // site Google ile giriş yapıp Google kimlik belgesini kuparena://baglan?gid=... ile oyuna geri yollar.
+  let pendingAfter = null;
+  async function google(after) {
+    if (isNative()) {
+      pendingAfter = after || null;
+      const ret = encodeURIComponent('kuparena://baglan');
+      location.href = `${window.RA_LINK_PAGE}?donus=${ret}`; // Capacitor dış adresleri telefonun tarayıcısında açar
+      throw { code: 'kupa/site-opened' };
     }
+    const p = new firebase.auth.GoogleAuthProvider();
+    p.setCustomParameters({ prompt: 'select_account' });
+    await auth.signInWithPopup(p);
   }
+  // Siteden geri dönüş
+  async function handleLink(url) {
+    const m = /[?&#]gid=([^&]+)/.exec(url || '');
+    if (!m) return;
+    try {
+      await auth.signInWithCredential(firebase.auth.GoogleAuthProvider.credential(decodeURIComponent(m[1])));
+      if (G.isModalOpen()) G.closeModal();
+      window.FX.confetti(80);
+      G.toast('Hoş geldin! RA ID ile giriş yaptın.');
+      const cb = pendingAfter; pendingAfter = null;
+      if (cb) cb();
+    } catch (e) { G.toast(errText(e)); }
+  }
+  try {
+    const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (App) {
+      App.addListener('appUrlOpen', (ev) => handleLink(ev && ev.url));
+      if (App.getLaunchUrl) App.getLaunchUrl().then(r => r && handleLink(r.url)).catch(() => {});
+    }
+  } catch (e) {}
 
   // Giriş penceresi. reason: 'trial' (deneme bitti) ya da 'profile'
   A.openLogin = function (reason, after) {
@@ -101,16 +127,19 @@
       <div class="btn-row" style="width:100%"><button class="btn btn-yellow" id="ra-login">Giriş yap</button><button class="btn btn-green" id="ra-register">Kayıt ol</button></div>
       <button class="linkbtn" id="ra-forgot">Şifremi unuttum</button>
       <p class="ra-err" id="ra-err" role="alert"></p>
-      <p class="note">RA ID, Rubik Academy’deki hesabınla aynıdır.</p>`,
+      <p class="note">RA ID, rubikacademy.fun’daki hesabınla aynıdır. Giriş yaparak <a href="${window.RA_SITE}/gizlilik" target="_blank" rel="noopener">gizlilik metnini</a> kabul edersin.</p>`,
       trial ? [{ label: 'Daha sonra', onClick: () => G.show('home') }] : [{ label: 'Kapat' }], { replace: true });
     if (!body) return;
     const err = (t) => { $('ra-err').textContent = t; };
     const busy = (on) => body.querySelectorAll('button').forEach(b => (b.disabled = on));
     const done = () => { G.closeModal(); window.FX.confetti(80); G.toast('Hoş geldin! RA ID ile giriş yaptın.'); if (after) after(); };
     const run = async (fn) => { err(''); busy(true); try { await fn(); done(); } catch (e) { err(errText(e)); } busy(false); };
-    $('ra-google').onclick = () => run(google);
+    $('ra-google').onclick = () => run(() => google(after));
     $('ra-login').onclick = () => run(() => auth.signInWithEmailAndPassword($('ra-email').value.trim(), $('ra-pass').value));
-    $('ra-register').onclick = () => run(() => auth.createUserWithEmailAndPassword($('ra-email').value.trim(), $('ra-pass').value));
+    $('ra-register').onclick = () => run(async () => {
+      const r = await auth.createUserWithEmailAndPassword($('ra-email').value.trim(), $('ra-pass').value);
+      try { await r.user.updateProfile({ displayName: G.S.name }); } catch (e) {}
+    });
     $('ra-forgot').onclick = async () => {
       const em = $('ra-email').value.trim();
       if (!em) return err('Önce e-posta adresini yaz.');
@@ -124,14 +153,10 @@
     G.S.account = null; G.save();
     G.toast('Çıkış yapıldı');
   };
-  // Google Play kuralı: hesap açılan uygulamada hesabı silme imkânı olmalı.
-  A.deleteAccount = async function () {
+  // RA ID ortak hesaptır: oyun yalnızca kendi kaydını siler. Hesabın tamamı rubikacademy.fun/ayarlar'dan silinir.
+  A.deleteGameData = async function () {
     const u = auth.currentUser; if (!u) return;
-    try {
-      await ref(u.uid).delete();
-      await u.delete();
-      G.S.account = null; G.save();
-      G.toast('Hesabın ve bulut kaydın silindi');
-    } catch (e) { G.toast(errText(e)); }
+    try { clearTimeout(pushT); await ref(u.uid).delete(); G.toast('Buluttaki Küp Arena kaydın silindi'); } catch (e) { G.toast(errText(e)); }
   };
+  A.deleteUrl = window.RA_SITE + '/ayarlar';
 })();

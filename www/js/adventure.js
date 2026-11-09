@@ -46,7 +46,7 @@
   function renderTop() {
     const S = G.S, cr = G.crownState(), ready = G.crownReady();
     $('adv-top').innerHTML = `
-      <button class="chest-card${ready ? ' ready' : ''}" id="chest-btn">${G.chestSVG('tac', 'chest-ico')}<div><b>Taç Sandığı</b>
+      <button class="chest-card${ready ? ' ready' : ''}" id="chest-btn">${G.chestSVG('tac', 'chest-ico')}<div><b>Şampiyon Kutusu</b>
         <small>${cr.got ? 'Yarın yine!' : ready ? 'Açmaya hazır!' : `Taç: ${cr.n}/10`}</small><span class="keys">${Array.from({ length: 10 }, (_, i) => `<i class="${i < cr.n ? 'on' : ''}"></i>`).join('')}</span></div></button>
       <div class="streak-card">${FLAME_SVG}<div><b>Seri: ${S.streak}</b><small>${S.streak >= 1 ? `Sonraki galibiyet: +${Math.min(S.streak + 1, 10) * 5}` : 'Üst üste kazan, bonus al'}</small></div></div>`;
     $('chest-btn').onclick = () => { G.openCrownChest(); renderTop(); };
