@@ -163,6 +163,7 @@
   $('adv-back').onclick = () => { Snd.click(); G.show('home'); };
   G.show('home');
   if (!G.S.seenIntro) G.startTour(true);
+  else if (!(G.S.tut && G.S.tut.tour)) G.startTour(false); // eski oyunculara yeni eğitici bir kez gösterilir
   else G.checkLogin();
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
