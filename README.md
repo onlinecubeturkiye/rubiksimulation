@@ -4,6 +4,10 @@ Paket aç, küp topla, maceraya çık, savaş ve çöz. Telefonda (Android uygul
 
 ## Oyun
 
+- **Sandıklar:** Her galibiyette bir sandık (Tahta, Gümüş, Altın, Dev, Sihirli). 4 yuva, aynı anda bir sandığın kilidi açılır, jetonla hemen açılabilir. Rakip küplerini yenerek günde 10 taç topla, Taç Sandığı'nı aç.
+- **Enerji:** Savaşta yetenekler enerji harcar; enerji her turda dolar.
+- **İfadeler:** Savaşta ifade balonları gönder, bilgisayar rakip de cevap verir.
+
 - **Öğretici:** İlk açılışta Küpi adlı rehber ekranı adım adım tanıtır, ilk savaşta ipuçları verir. Profil → Nasıl oynanır? ile tekrar izlenir.
 
 - **Ana Ekran:** Vitrin küpü, büyük OYNA düğmesi, görevler, günlük giriş, çark, sandık ve sezon kısayolları.

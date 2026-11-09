@@ -25,9 +25,10 @@
     $('sc-name').innerHTML = `${G.brandChip(fav)}<b>${esc(fav.model)}</b><small style="color:${r.color}">${r.name} · Sv ${G.level(fav.id) || 1}</small>`;
 
     // Yan düğmeler
-    const ready = S.keys >= 3;
+    const cr = G.crownState(), ready = G.crownReady();
     $('chest-home').classList.toggle('ready', ready);
-    $('chest-home-txt').textContent = ready ? 'Aç!' : `Sandık ${S.keys}/3`;
+    $('chest-home-txt').textContent = ready ? 'Taç: Aç!' : cr.got ? 'Taç ✓' : `Taç ${cr.n}/10`;
+    G.renderChestSlots();
     $('login-btn').classList.toggle('dot', S.login.day !== G.dayIndex());
     $('wheel-home').classList.toggle('dot', S.wheelDay !== G.dayIndex() && G.unlocked('wheel'));
     $('wheel-home').classList.toggle('locked', !G.unlocked('wheel'));
@@ -67,7 +68,7 @@
     if (next) setTimeout(() => { const el = document.querySelector(`[data-stage="${next.id}"]`); if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 60);
   };
   $('home-arena').onclick = () => { Snd.click(); if (G.needUnlock('arena')) return; G.show('arena'); };
-  $('chest-home').onclick = () => { G.openChest(); render(); };
+  $('chest-home').onclick = () => { G.openCrownChest(); render(); };
   $('login-btn').onclick = () => { if (!G.checkLogin()) G.toast('Bugünün ödülünü aldın, yarın yine gel!'); };
   $('wheel-home').onclick = () => {
     if (G.needUnlock('wheel')) return;

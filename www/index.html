@@ -42,6 +42,7 @@
         </div>
       </div>
       <button class="season-bar" id="season-bar"></button>
+      <div class="chest-row" id="chest-row"></div>
       <div class="home-play">
         <button class="btn btn-blue play-side" id="home-arena"><span>ARENA</span><small id="home-arena-sub"></small></button>
         <button class="btn btn-yellow play-main" id="home-play"><span>OYNA</span><small id="home-play-sub"></small></button>
@@ -193,10 +194,12 @@
   <div class="b-top">
     <span id="b-title"></span>
     <div class="b-tools">
+      <button class="btn btn-small" id="b-emote" aria-label="İfade gönder">😀</button>
       <button class="btn btn-small" id="b-auto">Oto: Kapalı</button>
       <button class="btn btn-small" id="b-quit">Pes et</button>
     </div>
   </div>
+  <div class="emote-pop" id="emote-pop" hidden></div>
   <div class="b-side enemy" id="b-B"></div>
   <div class="blog" id="blog" aria-live="polite"></div>
   <div class="b-side me" id="b-A"></div>
@@ -210,6 +213,7 @@
     <span class="def-hint">Rakip saldırıyor! Halka kalkana değince dokun!</span>
     <span class="def-wrap"><span class="def-ring" id="def-ring"></span><button class="def-btn" id="def-btn">SAVUN!</button></span>
   </div>
+  <div class="energy" id="energy"><span class="e-ico">⚡</span><div class="e-bar" id="e-bar"></div><b id="e-num">0</b></div>
   <div class="b-acts" id="b-acts">
     <button class="btn btn-big" id="act-atk">Saldır<small>Normal hasar</small></button>
     <button class="btn btn-pink btn-big" id="act-skill">Yetenek</button>
@@ -231,6 +235,16 @@
     <button class="btn" id="open-ok">Tamam</button>
     <button class="btn btn-yellow" id="open-again">Bir tane daha</button>
   </div>
+</div>
+
+<!-- Sandık açma -->
+<div class="overlay chest-open" id="chest-open" hidden>
+  <div class="rays on" style="--ray:#ffc928"></div>
+  <div class="co-left" id="co-left"></div>
+  <div class="co-chest" id="co-chest"></div>
+  <div class="co-card" id="co-card" hidden></div>
+  <div class="co-summary" id="co-summary" hidden></div>
+  <p class="tap-hint" id="co-hint"></p>
 </div>
 
 <!-- Genel pencere -->
@@ -269,6 +283,7 @@
 <script src="js/battle.js"></script>
 <script src="js/adventure.js"></script>
 <script src="js/shop.js"></script>
+<script src="js/chests.js"></script>
 <script src="js/arena.js"></script>
 <script src="js/solve.js"></script>
 <script src="js/home.js"></script>

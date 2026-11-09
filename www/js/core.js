@@ -26,7 +26,7 @@
       lastGift: 0, lastFree: 0, dealDay: -1,
       stats, best: {}, adv: { stars: {}, bosses: [] }, towerCheckpoint: 0,
       quests: null, ach: {}, settings: { sound: true, power: true }, seenIntro: false, dailyDone: -1,
-      streak: 0, bestStreak: 0, keys: 0, login: { day: -1, streak: 0 }, wheelDay: -1, trial: 0, account: null,
+      streak: 0, bestStreak: 0, chests: [null, null, null, null], chestIdx: 0, crowns: null, login: { day: -1, streak: 0 }, wheelDay: -1, trial: 0, account: null,
     };
   }
   function migrate(s) {
@@ -40,6 +40,9 @@
     if (!s.lvl) { out.lvl = {}; for (const id in out.inv) out.lvl[id] = Math.min(10, out.inv[id]); }
     if (!s.v) out.seenIntro = true; // eski oyuncular rehberi tekrar görmesin
     out.team = (out.team || []).filter(id => out.inv[id]).slice(0, 3);
+    // Eski 'sandık anahtarı' sistemi: biriken anahtarlar sandık olarak verilir
+    if (s.keys) { out.chests = out.chests || [null, null, null, null]; out.chests[0] = out.chests[0] || { type: s.keys >= 3 ? 'altin' : 'gumus', end: null }; }
+    delete out.keys;
     out.v = 2;
     return out;
   }
@@ -85,6 +88,7 @@
     return pickOne(pool.length ? pool : D.CUBES.filter(c => !pack.brand || c.brand === pack.brand));
   };
   G.brandOf = (def) => D.BRANDS[def.brand];
+  G.skillCost = (def) => Math.max(1, D.SKILLS[def.skill].cost - (def.brand === 'hayate' ? 1 : 0));
   G.tierOf = (def) => D.TIERS[D.BRANDS[def.brand].tier];
   G.tierChip = (t) => `<span class="tier" style="--tc:${D.TIERS[t].color}">${D.TIERS[t].name}</span>`;
   G.brandChip = (def, cls = '') => { const b = D.BRANDS[def.brand]; return `<span class="bm ${cls}" style="--bc:${b.color}">${b.name}</span>`; };
@@ -181,6 +185,7 @@
   // ---------- Savaş sonrası bonuslar: seri, sandık anahtarı, mükemmel vuruş ----------
   G.afterBattle = function (res) {
     const S = G.S, lines = [];
+    if (res.crowns) { const c = G.crownState(); if (!c.got) { const before = c.n; G.addCrowns(res.crowns); if (c.n > before) lines.push(['Taç', `+${c.n - before} (${c.n}/10)`]); } }
     if (G.auth && G.auth.enabled && !G.auth.user) S.trial = (S.trial || 0) + 1;
     S.stats.maxCombo = Math.max(S.stats.maxCombo || 0, res.maxCombo || 0);
     if (!res.won) {
@@ -192,7 +197,8 @@
     let coins = 0;
     if (res.perfects) { const c = res.perfects * 5; coins += c; lines.push([`Mükemmel vuruş ×${res.perfects}`, `+${c}`]); }
     if (S.streak >= 2) { const c = Math.min(S.streak, 10) * 5; coins += c; lines.push([`Galibiyet serisi ×${S.streak}`, `+${c}`]); }
-    if (S.keys < 3) { S.keys++; lines.push(['Sandık anahtarı', `${S.keys}/3`]); }
+    const chest = G.dropChest();
+    lines.push(chest ? ['Sandık kazandın', D.CHESTS[chest].name] : ['Sandık yuvaların dolu', 'Ana ekranda aç']);
     if (G.event().id === 'coins') { coins += 50; lines.push(['Etkinlik: Çift Jeton', '+50']); }
     if (coins) G.addCoins(coins);
     return { coins, html: bonusHtml(lines) };
@@ -200,23 +206,6 @@
   function bonusHtml(lines) {
     return `<div class="bonus-list">${lines.map(([a, b]) => `<span><span>${a}</span><b>${b}</b></span>`).join('')}</div>`;
   }
-
-  // ---------- Zafer sandığı ----------
-  G.openChest = function () {
-    const S = G.S;
-    if (S.keys < 3) return G.toast(`Sandık için ${3 - S.keys} galibiyet daha`);
-    S.keys = 0;
-    const r = Math.random();
-    const pack = r < 0.08 ? 'efsane' : r < 0.4 ? 'usta' : 'klasik';
-    const coins = 80 + ((Math.random() * 5) | 0) * 20;
-    G.addCoins(coins);
-    G.save();
-    window.FX.confetti(80); window.FX.coins(8);
-    const p = D.PACKS.find(x => x.id === pack);
-    G.modal('Zafer Sandığı!', `<div class="big-num">+${coins}</div><p>jeton ve bir <b>${esc(p.name)}</b>!</p>`,
-      [{ label: 'Paketi aç', cls: 'btn-yellow', onClick: () => G.openPack(p) }], { replace: true });
-    if (G.renderAdventure) G.renderAdventure();
-  };
 
   // ---------- Günlük giriş takvimi ----------
   const LOGIN = [
@@ -291,7 +280,7 @@
     if (arenaTab && G.roadClaimable) arenaTab.classList.toggle('dot', G.unlocked('arena') && G.roadClaimable());
     if (arenaTab) arenaTab.classList.toggle('locked-tab', !G.unlocked('arena'));
     const homeTab = document.querySelector('[data-tab=home]');
-    if (homeTab && S.quests) homeTab.classList.toggle('dot', G.questsClaimable() || S.keys >= 3 || G.seasonClaimable());
+    if (homeTab && S.quests) homeTab.classList.toggle('dot', G.questsClaimable() || (G.chestsReady && G.chestsReady()) || G.seasonClaimable());
     const packCount = S.packs.klasik + S.packs.usta + S.packs.efsane;
     const shopTab = document.querySelector('[data-tab=shop]');
     if (shopTab) shopTab.classList.toggle('dot', packCount > 0 || S.lastGift + G.GIFT_MS <= Date.now() || S.lastFree + G.FREE_MS <= Date.now() || (S.wheelDay !== dayIndex() && G.unlocked('wheel')));

@@ -294,7 +294,7 @@
       const card = h('button', 'card' + (have ? '' : ' locked') + (S.team.includes(def.id) ? ' in-team' : ''));
       card.style.setProperty('--rc', D.RARITIES[def.rarity].color);
       const ty = D.TYPES[G.typeOf(def)];
-      card.innerHTML = `<canvas></canvas>${have ? G.brandChip(def, 'sm') : ''}<span class="nm">${have ? esc(def.model) : '???'}</span><span class="rr">${D.RARITIES[def.rarity].name}</span>` +
+      card.innerHTML = `${have ? `<span class="cost" title="Yetenek enerjisi">${G.skillCost(def)}</span>` : ''}<canvas></canvas>${have ? G.brandChip(def, 'sm') : ''}<span class="nm">${have ? esc(def.model) : '???'}</span><span class="rr">${D.RARITIES[def.rarity].name}</span>` +
         (have ? `<span class="lv">Sv ${G.level(def.id)}</span>${have > 1 ? `<span class="cnt">×${have}</span>` : ''}<span class="ty" style="background:${ty.color}">${ty.name}</span>` : '');
       if (have) card.onclick = () => openDetail(def);
       else card.disabled = true;

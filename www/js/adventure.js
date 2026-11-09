@@ -44,12 +44,12 @@
   const CHEST_SVG = '<svg class="chest-ico" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 20h36v20a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V20Z" fill="#ff8a1f" stroke="#1d1446" stroke-width="3"/><path d="M6 20c0-8 6-13 18-13s18 5 18 13H6Z" fill="#ffcc1f" stroke="#1d1446" stroke-width="3"/><rect x="20" y="17" width="8" height="10" rx="2" fill="#fff" stroke="#1d1446" stroke-width="3"/></svg>';
   const FLAME_SVG = '<svg class="flame" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4c3 8 12 12 12 24a12 12 0 0 1-24 0c0-6 3-9 5-12 1 4 3 6 5 6-2-6 0-12 2-18Z" fill="#ff8a1f" stroke="#1d1446" stroke-width="3" stroke-linejoin="round"/><path d="M24 26c2 3 6 5 6 10a6 6 0 0 1-12 0c0-3 2-5 3-6 1 2 2 2 3 2-1-2 0-4 0-6Z" fill="#ffcc1f"/></svg>';
   function renderTop() {
-    const S = G.S, ready = S.keys >= 3;
+    const S = G.S, cr = G.crownState(), ready = G.crownReady();
     $('adv-top').innerHTML = `
-      <button class="chest-card${ready ? ' ready' : ''}" id="chest-btn">${CHEST_SVG}<div><b>Zafer Sandığı</b>
-        <small>${ready ? 'Açmaya hazır!' : `${3 - S.keys} galibiyet daha`}</small><span class="keys">${[0, 1, 2].map(i => `<i class="${i < S.keys ? 'on' : ''}"></i>`).join('')}</span></div></button>
+      <button class="chest-card${ready ? ' ready' : ''}" id="chest-btn">${G.chestSVG('tac', 'chest-ico')}<div><b>Taç Sandığı</b>
+        <small>${cr.got ? 'Yarın yine!' : ready ? 'Açmaya hazır!' : `Taç: ${cr.n}/10`}</small><span class="keys">${Array.from({ length: 10 }, (_, i) => `<i class="${i < cr.n ? 'on' : ''}"></i>`).join('')}</span></div></button>
       <div class="streak-card">${FLAME_SVG}<div><b>Seri: ${S.streak}</b><small>${S.streak >= 1 ? `Sonraki galibiyet: +${Math.min(S.streak + 1, 10) * 5}` : 'Üst üste kazan, bonus al'}</small></div></div>`;
-    $('chest-btn').onclick = () => G.openChest();
+    $('chest-btn').onclick = () => { G.openCrownChest(); renderTop(); };
   }
 
   function render() {

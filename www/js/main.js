@@ -85,7 +85,7 @@
         <button class="btn btn-small" id="set-intro">Nasıl oynanır?</button>
         <button class="btn btn-small danger" id="set-reset">Oyunu sıfırla</button>
       </div>
-      <p class="note">Küp Arena v2.3 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
+      <p class="note">Küp Arena v2.4 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
     if (!body) return;
     if (G.auth.enabled) {
       if ($('ra-in')) $('ra-in').onclick = () => G.auth.openLogin('profile');
@@ -157,6 +157,7 @@
   // ---------- Android geri tuşu ----------
   function back() {
     if (!$('opener').hidden) { if (!$('open-actions').hidden) G.closeOpener(); return true; }
+    if (!$('chest-open').hidden) { G.closeChest(); return true; }
     if (G.isModalOpen()) { G.closeModal(); return true; }
     if (G.inBattle()) { $('b-quit').click(); return true; }
     if (G.current !== 'home') { G.show('home'); return true; }

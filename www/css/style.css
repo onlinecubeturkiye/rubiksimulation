@@ -668,3 +668,95 @@ main:has(.tab-home:not([hidden])) { display: flex; flex-direction: column; }
 .ra-err { color: #ff9aa5 !important; min-height: 1.2em; margin: 0; }
 .account { width: 100%; display: grid; gap: 8px; text-align: left; background: rgba(11,16,51,0.45); border: 2px solid var(--ink); border-radius: 14px; padding: 10px; color: #fff; }
 .account small { color: var(--dim); }
+
+/* ===== v2.4: sandıklar, enerji, ifadeler, kart çerçeveleri ===== */
+/* Sandık çizimi */
+.chest-svg { width: 64px; height: 58px; overflow: visible; filter: drop-shadow(0 3px 0 rgba(11,16,51,0.5)); }
+.chest-svg .c-lid { transform-origin: 50px 44px; transition: transform 0.35s cubic-bezier(.3,1.6,.5,1); }
+.chest-svg.idle { animation: bob 1.4s ease-in-out infinite; }
+.chest-svg.shake { animation: shake 0.45s ease-in-out; }
+.chest-svg.open .c-lid { transform: translateY(-26px) rotate(-18deg); }
+.chest-svg.wobble { animation: wiggle 1.6s ease-in-out infinite; }
+.chest-ico.chest-svg { width: 42px; height: 38px; }
+.chest-big .chest-svg { width: 130px; height: 117px; }
+
+/* Ana ekran sandık yuvaları */
+.chest-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.slot-chest { position: relative; display: grid; justify-items: center; align-content: center; gap: 0; min-height: 94px; padding: 4px 2px 6px; cursor: pointer; font: inherit; color: #fff;
+  background: linear-gradient(180deg, rgba(11,16,51,0.55), rgba(11,16,51,0.8)); border: 3px solid var(--ink); border-radius: 14px; box-shadow: inset 0 2px 0 rgba(255,255,255,0.12); }
+.slot-chest.empty { border-style: dashed; border-color: rgba(255,255,255,0.25); background: rgba(11,16,51,0.3); }
+.sc-empty { font-size: 0.68rem; color: var(--dim); }
+.slot-chest .chest-svg { width: 52px; height: 46px; }
+.sc-name { font-family: var(--font-display); font-size: 0.72rem; line-height: 1; text-shadow: var(--outline); }
+.slot-chest small { font-size: 0.62rem; color: var(--dim); }
+.slot-chest b { font-family: var(--font-display); font-size: 0.72rem; border-radius: 8px; padding: 0 6px; margin-top: 2px; text-shadow: var(--outline); }
+.sc-unlock { background: var(--green); border: 2px solid var(--ink); }
+.sc-time { background: rgba(255,255,255,0.12); color: var(--gold); }
+.sc-open { background: var(--gold); color: var(--ink) !important; text-shadow: none !important; border: 2px solid var(--ink); }
+.slot-chest.unlocking { background: linear-gradient(180deg, #3e55c4, #24318a); }
+.slot-chest.ready { background: linear-gradient(180deg, #ffe36b, var(--gold)); animation: wiggle 1.4s ease-in-out infinite; }
+.slot-chest.ready .sc-name { color: #fff; }
+
+/* Sandık açma ekranı */
+.chest-open { overflow: hidden; background: radial-gradient(circle at 50% 45%, #3b55d6, #070b2a 72%); cursor: pointer; }
+.co-left { position: relative; z-index: 1; font-family: var(--font-display); font-size: 1.1rem; text-shadow: var(--outline); min-height: 1.4em; }
+.co-chest { position: relative; z-index: 1; }
+.co-chest .chest-svg { width: min(220px, 60vw); height: auto; }
+.co-card { position: relative; z-index: 1; display: grid; justify-items: center; gap: 6px; width: min(250px, 70vw); padding: 16px 12px; text-align: center;
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--rc) 45%, #2c3fa8), #141c5a 75%); border: 5px solid var(--rc); outline: 4px solid var(--ink); border-radius: 24px; box-shadow: 0 0 40px color-mix(in srgb, var(--rc) 60%, transparent), 0 8px 0 var(--ink); }
+.co-card.flip { animation: cardFlip 0.45s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes cardFlip { from { transform: rotateY(90deg) scale(0.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.co-card canvas { width: 170px; height: 170px; animation: float 2.4s ease-in-out infinite; }
+.co-name { font-family: var(--font-display); font-size: 1.6rem; line-height: 1.1; text-shadow: var(--outline); }
+.co-sub { font-size: 0.95rem; }
+.co-coins { display: flex; gap: 6px; padding: 30px 0 10px; }
+.co-coins .coin { width: 56px; height: 56px; animation: float 1.6s ease-in-out infinite; }
+.co-coins .coin:nth-child(2) { animation-delay: -0.5s; transform: translateY(-12px); }
+.co-summary { position: relative; z-index: 1; width: min(380px, 100%); display: grid; gap: 10px; justify-items: center; text-align: center; background: var(--panel); border: 4px solid var(--ink); border-radius: 22px; padding: 14px; box-shadow: 0 8px 0 var(--ink); cursor: default; }
+.co-summary h3 { font-family: var(--font-display); font-size: 1.4rem; text-shadow: var(--outline); }
+.co-summary p { margin: 0; color: var(--gold); font-family: var(--font-display); font-size: 1.2rem; text-shadow: var(--outline); }
+.co-grid { width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 6px; }
+.co-mini { position: relative; display: grid; place-items: center; aspect-ratio: 1; border-radius: 12px; border: 3px solid var(--rc); background: rgba(11,16,51,0.5); }
+.co-mini canvas { width: 46px; height: 46px; }
+.co-mini em { position: absolute; bottom: -6px; font-style: normal; font-size: 0.55rem; background: var(--green); border: 2px solid var(--ink); border-radius: 6px; padding: 0 4px; }
+
+/* Enerji */
+.energy { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; background: rgba(11,16,51,0.85); border: 3px solid var(--ink); border-radius: 14px; padding: 4px 10px; }
+.e-ico { font-size: 1.1rem; filter: drop-shadow(0 2px 0 var(--ink)); }
+.e-bar { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+.e-bar i { height: 14px; border-radius: 4px; background: #2a1d55; border: 2px solid var(--ink); }
+.e-bar i.on { background: linear-gradient(180deg, #e6a8ff, #c040ff 55%, #8a20c8); box-shadow: 0 0 6px rgba(200,80,255,0.7); }
+.energy b { font-family: var(--font-display); font-size: 1.2rem; color: #e6a8ff; text-shadow: var(--outline); min-width: 1.2em; text-align: center; }
+.energy.enemy-turn { opacity: 0.6; }
+.cost-drop, .card .cost { display: inline-grid; place-items: center; width: 26px; height: 30px; font-family: var(--font-display); font-size: 0.95rem; color: #fff; text-shadow: var(--outline);
+  background: radial-gradient(circle at 40% 35%, #f0c4ff, #c040ff 55%, #7a1aa8); border: 2px solid var(--ink); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; }
+.b-acts .btn { position: relative; }
+.b-acts .cost-drop { position: absolute; top: -12px; left: -8px; }
+.energy-chip { background: rgba(192,64,255,0.35) !important; }
+
+/* İfadeler */
+.emote-pop { position: absolute; right: 12px; top: calc(52px + env(safe-area-inset-top, 0px)); z-index: 5; width: auto !important; max-width: 300px !important; margin: 0 !important;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: var(--panel); border: 3px solid var(--ink); border-radius: 18px; padding: 8px; box-shadow: 0 6px 0 var(--ink); animation: pop 0.25s ease both; }
+.emote-pop button { display: grid; justify-items: center; gap: 0; background: rgba(11,16,51,0.45); border: 2px solid var(--ink); border-radius: 12px; padding: 4px 6px; color: #fff; font: inherit; font-size: 0.7rem; cursor: pointer; }
+.emote-pop button span { font-size: 1.6rem; line-height: 1.2; }
+.emote { position: absolute; z-index: 4; top: 6px; display: flex; align-items: center; gap: 6px; background: #fff; color: var(--ink); border: 3px solid var(--ink); border-radius: 16px; padding: 4px 12px; box-shadow: 0 4px 0 var(--ink); animation: emoteIn 1.8s ease both; pointer-events: none; }
+.emote span { font-size: 1.8rem; line-height: 1; }
+.emote b { font-family: var(--font-display); font-size: 1rem; }
+.b-side.me .emote { left: 120px; }
+.b-side.enemy .emote { right: 120px; }
+.emote::after { content: ""; position: absolute; bottom: -12px; border: 8px solid transparent; border-top-color: var(--ink); }
+.b-side.me .emote::after { left: 14px; }
+.b-side.enemy .emote::after { right: 14px; }
+@keyframes emoteIn { 0% { transform: scale(0); } 12% { transform: scale(1.15); } 20%, 85% { transform: scale(1); opacity: 1; } 100% { transform: translateY(-8px); opacity: 0; } }
+
+/* Koleksiyon kartları: nadirlik çerçevesi, enerji damlası, seviye rozeti */
+.card { padding: 10px 4px 0; border: 4px solid var(--rc); outline: 3px solid var(--ink); outline-offset: -1px; border-radius: 16px; margin: 3px;
+  background: radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--rc) 55%, #3b55d6) 0%, #1c2878 62%); box-shadow: 0 5px 0 var(--ink); }
+.card canvas { width: 80px; height: 80px; }
+.card .nm { background: linear-gradient(180deg, #0b1033, #141c5a); border-top: 3px solid var(--rc); padding: 4px 4px 14px; }
+.card .lv { top: auto; left: 50%; bottom: -2px; transform: translateX(-50%); background: linear-gradient(180deg, #7fbfff, var(--blue)); color: #fff; border: 2px solid var(--ink); border-radius: 8px; font-size: 0.7rem; padding: 0 8px; text-shadow: var(--outline); z-index: 1; }
+.card .cost { position: absolute; top: 4px; left: 4px; width: 24px; height: 28px; font-size: 0.9rem; z-index: 1; }
+.card .bm.sm { top: 74px; }
+.card .ty { top: 74px; }
+.card.locked { outline-color: rgba(11,16,51,0.6); background: rgba(11,16,51,0.45); }
+.card.in-team::after { top: 12px; }

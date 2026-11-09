@@ -27,11 +27,11 @@
   };
 
   const SKILLS = {
-    double: { name: 'Köşe Darbesi', desc: '2 kat hasar verir.' },
-    heal:   { name: 'Hizala',       desc: 'Canının %35’ini yeniler.' },
-    stun:   { name: 'Karıştır',     desc: 'Az hasar verir, rakip 1 tur bekler.' },
-    shield: { name: 'Kalkan',       desc: 'Sonraki 2 saldırıda yarı hasar alır.' },
-    drain:  { name: 'Emici',        desc: 'Hasar verir, yarısını can olarak alır.' },
+    double: { name: 'Köşe Darbesi', desc: '2 kat hasar verir.', cost: 5 },
+    heal:   { name: 'Hizala',       desc: 'Canının %35’ini yeniler.', cost: 4 },
+    stun:   { name: 'Karıştır',     desc: 'Az hasar verir, rakip 1 tur bekler.', cost: 5 },
+    shield: { name: 'Kalkan',       desc: 'Sonraki 2 saldırıda yarı hasar alır.', cost: 3 },
+    drain:  { name: 'Emici',        desc: 'Hasar verir, yarısını can olarak alır.', cost: 4 },
   };
 
   function mk(id, name, type, n, pal, rarity, skill) {
@@ -86,7 +86,7 @@
   const BRANDS = {
     topac:  { name: 'TOPAÇ',  tier: 'eko',  color: '#65a30d', tag: 'Oyuncakçıdaki renkli küpler', perk: 'Güçlendirme %40 ucuz' },
     kairo:  { name: 'KAIRO',  tier: 'eko',  color: '#0ea5e9', tag: 'Herkes için uygun fiyatlı küpler', perk: '+%15 can' },
-    hayate: { name: 'HAYATE', tier: 'orta', color: '#f59e0b', tag: 'Hafif, hızlı ve şeker gibi', perk: 'Yetenek 2 turda bir (normali 3)' },
+    hayate: { name: 'HAYATE', tier: 'orta', color: '#f59e0b', tag: 'Hafif, hızlı ve şeker gibi', perk: 'Yetenekler 1 enerji ucuz' },
     torva:  { name: 'TORVA',  tier: 'orta', color: '#10b981', tag: 'Güçlü mıknatıslar, sağlam yapı', perk: 'Savaşa 1 kalkanla başlar' },
     zenko:  { name: 'ZENKO',  tier: 'pro',  color: '#e11d48', tag: 'Şampiyonların tercihi amiral gemisi küpler', perk: 'Kritik şansı %20 (normali %10)' },
     vexa:   { name: 'VEXA',   tier: 'pro',  color: '#8b5cf6', tag: 'Rekabetçi ve sıra dışı tasarımlar', perk: 'Kritik vuruş 2 kat (normali 1,5)' },
@@ -212,5 +212,20 @@
     { id: 'pvp1',    name: 'Dostluk Maçı',       desc: 'Arkadaşınla aynı telefonda oyna', stat: 'pvp',     target: 1,  reward: 100 },
   ];
 
-  window.GameData = { TIERS, BRANDS, RARITIES, RARITY_ORDER, PALETTES, SKILLS, CUBES, PACKS, BOTS, TYPE_OF, TYPES, WORLDS, QUESTS, ACHIEVEMENTS };
+  // Sandıklar: galibiyetlerden düşer, 4 yuvaya girer, sırayla kilidi açılır.
+  // odds: Yaygın, Nadir, Epik, Efsane, Mitik (yüzde); min: en az bu nadirlikte 1 küp garanti.
+  const CHESTS = {
+    tahta:   { name: 'Tahta Sandık',   mins: 3,   cubes: 2,  coins: 40,  odds: [75, 22, 3, 0, 0],       color: '#c9893b', lid: '#8a5a22' },
+    gumus:   { name: 'Gümüş Sandık',   mins: 15,  cubes: 4,  coins: 90,  odds: [62, 30, 7, 1, 0],       color: '#b9c5d6', lid: '#7c8aa5' },
+    altin:   { name: 'Altın Sandık',   mins: 60,  cubes: 7,  coins: 220, odds: [50, 35, 12, 3, 0],      color: '#ffc928', lid: '#c98400', min: 'rare' },
+    dev:     { name: 'Dev Sandık',     mins: 180, cubes: 14, coins: 500, odds: [55, 32, 10, 3, 0],      color: '#3bdc6e', lid: '#1f9b46', min: 'epic' },
+    sihirli: { name: 'Sihirli Sandık', mins: 360, cubes: 6,  coins: 300, odds: [0, 45, 40, 13, 2],      color: '#8a5cff', lid: '#5a2fd0', min: 'legendary' },
+    tac:     { name: 'Taç Sandığı',    mins: 0,   cubes: 5,  coins: 150, odds: [55, 33, 10, 2, 0],      color: '#ff4f9a', lid: '#c0176a', min: 'rare' },
+  };
+  // Düşme sırası (tekrar eder): çoğu tahta/gümüş, arada altın, nadiren dev ve sihirli.
+  const CHEST_CYCLE = ['tahta', 'tahta', 'gumus', 'tahta', 'altin', 'gumus', 'tahta', 'gumus', 'tahta', 'altin',
+                       'tahta', 'gumus', 'sihirli', 'tahta', 'gumus', 'altin', 'tahta', 'gumus', 'tahta', 'dev'];
+  const EMOTES = [['😂', 'Haha!'], ['👍', 'İyi oyun!'], ['😮', 'Vay be!'], ['😡', 'Grrr!'], ['💪', 'Hadi!'], ['😭', 'Olamaz!']];
+
+  window.GameData = { CHESTS, CHEST_CYCLE, EMOTES, TIERS, BRANDS, RARITIES, RARITY_ORDER, PALETTES, SKILLS, CUBES, PACKS, BOTS, TYPE_OF, TYPES, WORLDS, QUESTS, ACHIEVEMENTS };
 })();
