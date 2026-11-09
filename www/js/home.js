@@ -31,7 +31,7 @@
     $('login-btn').classList.toggle('dot', S.login.day !== G.dayIndex());
     $('wheel-home').classList.toggle('dot', S.wheelDay !== G.dayIndex());
     $('season-btn').classList.toggle('dot', G.seasonClaimable());
-    $('tower-home').hidden = !S.adv.bosses.includes('w1');
+    $('tower-home').classList.toggle('locked', !S.adv.bosses.includes('w1'));
 
     // Sezon çubuğu
     const st = G.seasonState(), tier = G.seasonTier();
@@ -66,7 +66,8 @@
     if (G.S.wheelDay === G.dayIndex()) return G.toast('Çark yarın yine dönecek!');
     G.show('shop'); $('wheel-btn').click();
   };
-  $('tower-home').onclick = () => { G.show('adv'); setTimeout(() => $('tower').scrollIntoView({ block: 'center', behavior: 'smooth' }), 60); };
+  $('tower-home').onclick = () => {
+    if (!G.S.adv.bosses.includes('w1')) return G.toast('Sonsuz Kule, ilk dünyanın boss’unu yenince açılır'); G.show('adv'); setTimeout(() => $('tower').scrollIntoView({ block: 'center', behavior: 'smooth' }), 60); };
   $('season-btn').onclick = openSeason;
   $('season-bar').onclick = openSeason;
   $('event-banner').onclick = () => {

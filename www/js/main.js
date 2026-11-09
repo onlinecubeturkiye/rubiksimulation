@@ -79,13 +79,13 @@
         <button class="btn btn-small" id="set-intro">Nasıl oynanır?</button>
         <button class="btn btn-small danger" id="set-reset">Oyunu sıfırla</button>
       </div>
-      <p class="note">Küp Arena v2.1 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
+      <p class="note">Küp Arena v2.2 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
     if (!body) return;
     $('set-power').onclick = () => { S.settings.power = S.settings.power === false; G.save(); openProfile(); };
     $('set-sound').onclick = () => { S.settings.sound = !S.settings.sound; Snd.setEnabled(S.settings.sound); G.save(); openProfile(); };
     $('set-name').onclick = rename;
     $('set-backup').onclick = backup;
-    $('set-intro').onclick = () => intro(false);
+    $('set-intro').onclick = () => { G.closeModal(); G.startTour(false); };
     $('set-reset').onclick = () => G.confirm('Oyunu sıfırla?', 'Tüm ilerlemen silinir. Bu geri alınamaz.', 'Sıfırla', G.resetSave);
   }
   $('lvl-btn').onclick = () => { Snd.click(); openProfile(); };
@@ -162,11 +162,11 @@
   G.save();
   $('adv-back').onclick = () => { Snd.click(); G.show('home'); };
   G.show('home');
-  if (!G.S.seenIntro) intro(true);
+  if (!G.S.seenIntro) G.startTour(true);
   else G.checkLogin();
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
     G.ensureQuests(); G.renderHeader();
-    if (G.S.seenIntro && !G.inBattle() && !G.isModalOpen()) G.checkLogin();
+    if (G.S.seenIntro && !G.inBattle() && !G.isModalOpen() && !G.inTour()) G.checkLogin();
   });
 })();

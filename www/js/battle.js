@@ -39,7 +39,7 @@
     $('b-quit').textContent = cfg.mode === 'pvp' ? 'Bitir' : 'Pes et';
     if (cfg.mode !== 'pvp' && G.event().id === 'pyramid') B.A.list.forEach(f => { if (f.def.type === 'pyramid') f.atk = Math.round(f.atk * 1.25); });
     $('battle').hidden = false;
-    $('power').hidden = true; $('b-acts').hidden = false;
+    $('power').hidden = true; $('defend').hidden = true; $('b-acts').hidden = false;
     B.drawn = {};
     renderAll();
     say(`<b>${esc(B.B.name)}</b> ile savaş başladı!`);
@@ -71,6 +71,11 @@
     let act;
     if (isHuman(side)) {
       if (B.mode === 'pvp') Snd.turn();
+      else if (side === 'A') {
+        G.tip('atk', '#act-atk', 'Sıra sende! Saldır’a bas.');
+        if (f.cd === 0 && B.turns > 1) G.tip('skill', '#act-skill', 'Yetenek hazır! Her küpün özel bir gücü var, bir dene!');
+      }
+      B.turns = (B.turns || 0) + 1;
       act = await new Promise(res => (B.resolve = res));
       B.resolve = null;
       if (B && !B.over && powerOn() && (act.kind === 'atk' || act.kind === 'skill') && isHuman(side)) act.power = await powerBar(side);
@@ -78,6 +83,8 @@
       await pace(side === 'A' ? 350 : 550);
       if (!B || B.over) return;
       act = ai(side);
+      const hurts = act.kind === 'atk' || (act.kind === 'skill' && f.def.skill !== 'heal');
+      if (side === 'B' && hurts && B.mode !== 'pvp' && !B.auto && powerOn()) act.defend = await defendQTE();
     }
     if (!B || B.over) return;
     await perform(side, act);
@@ -105,6 +112,7 @@
     return new Promise(res => {
       const el = $('power'), needle = el.querySelector('.power-needle');
       el.hidden = false; $('b-acts').hidden = true;
+      G.tip('power', '#power', 'İbre yeşilin ORTASINDAYKEN dokun: MÜKEMMEL vuruş!', 4500);
       const combo = B.combo[side];
       $('power-combo').textContent = combo > 1 ? `Kombo ×${combo}` : '';
       el.querySelectorAll('.power-result').forEach(x => x.remove());
@@ -145,6 +153,31 @@
     });
   }
 
+  // Savunma: halka küçülür, mavi kalkana değdiği an dokunursan hasar yarıya iner.
+  function defendQTE() {
+    return new Promise(res => {
+      const el = $('defend'), btn = $('def-btn'), ring = $('def-ring');
+      el.hidden = false; $('b-acts').hidden = true;
+      el.querySelectorAll('.def-result').forEach(x => x.remove());
+      G.tip('defend', '#defend', 'Halka mavi kalkana değdiği AN dokun: hasar yarıya iner!', 4500);
+      const T = 750 + Math.random() * 550, t0 = performance.now();
+      const anim = ring.animate([{ transform: 'scale(2.1)', opacity: 0.35 }, { transform: 'scale(1)', opacity: 1, offset: T / (T + 260) }, { transform: 'scale(0.8)', opacity: 0 }], { duration: T + 260, fill: 'forwards' });
+      let done = false;
+      const finish = (m, txt) => {
+        if (done) return; done = true;
+        anim.cancel(); btn.onpointerdown = null; window.removeEventListener('keydown', key);
+        el.querySelector('.def-wrap').appendChild(h('div', 'def-result', txt));
+        if (m < 1) { Snd.star(1); window.FX.burstAt(btn, '#2e8cff', 18, 5); }
+        setTimeout(() => { el.hidden = true; $('b-acts').hidden = false; res(m); }, 380);
+      };
+      const tap = () => { const dt = performance.now() - t0 - T; if (Math.abs(dt) <= 170) finish(0.5, 'BLOK!'); else finish(1, dt < 0 ? 'Erken!' : 'Geç!'); };
+      const key = (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); tap(); } };
+      btn.onpointerdown = (e) => { e.preventDefault(); tap(); };
+      window.addEventListener('keydown', key);
+      setTimeout(() => finish(1, 'Kaçırdın'), T + 280);
+    });
+  }
+
   function rollDmg(a, d, k) {
     let dmg = a.atk * rand(0.85, 1.15) * k;
     const e = eff(a, d);
@@ -181,8 +214,8 @@
     if (act.kind === 'quit') return;
     const a = cur(side), d = cur(dSide);
     const who = `<b>${esc(a.label)}</b>`;
-    const pm = act.power ? act.power.m : 1, big = pm >= 1.5;
-    const ptxt = act.power ? (big ? ' <b class="good">Mükemmel vuruş!</b>' : pm < 1 ? ' Iska gibi…' : '') : '';
+    const pm = act.defend !== undefined ? act.defend : act.power ? act.power.m : 1, big = pm >= 1.5;
+    const ptxt = act.defend !== undefined ? (act.defend < 1 ? ' <b class="good">Blokladın!</b>' : '') : act.power ? (big ? ' <b class="good">Mükemmel vuruş!</b>' : pm < 1 ? ' Iska gibi…' : '') : '';
     anim(side, 'lunge');
     await pace(180);
     if (!B || B.over) return;

@@ -269,6 +269,8 @@
     document.querySelector('.lvl-badge').style.setProperty('--p', pct + '%');
     $('hdr-xp').style.width = pct + '%';
     if (S.quests) $('quest-btn').classList.toggle('dot', G.questsClaimable());
+    const arenaTab = document.querySelector('[data-tab=arena]');
+    if (arenaTab && G.roadClaimable) arenaTab.classList.toggle('dot', G.roadClaimable());
     const homeTab = document.querySelector('[data-tab=home]');
     if (homeTab && S.quests) homeTab.classList.toggle('dot', G.questsClaimable() || S.keys >= 3 || G.seasonClaimable());
     const packCount = S.packs.klasik + S.packs.usta + S.packs.efsane;

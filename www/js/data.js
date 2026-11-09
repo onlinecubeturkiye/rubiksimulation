@@ -129,12 +129,12 @@
 
   // Bilgisayar rakipler (gerçek oyuncular değil).
   const BOTS = [
-    ['KüpUstası', 2610], ['Zeynep_34', 2380], ['HızlıParmak', 2190], ['Mert.cube', 2040], ['PiramitKralı', 1880],
-    ['Elif2012', 1750], ['AyazSpeed', 1620], ['DenizK', 1505], ['Kerem3x3', 1390], ['Ece.solve', 1280],
-    ['MegaMinxer', 1175], ['Burak_TR', 1080], ['NilCube', 990], ['Poyraz', 905], ['Defne', 820],
-    ['Arda.07', 745], ['Lina', 670], ['EmirHan', 600], ['KüpKedisi', 530], ['Yağmur', 470],
-    ['Can_R2', 410], ['Selin', 355], ['Toprak', 300], ['Asel', 250], ['Efe.rubik', 205],
-    ['Miray', 160], ['Ozan', 120], ['Duru', 85], ['Kaan', 50], ['Yeni_Başlayan', 20],
+    ['Usta Robot', 2610], ['Şampiyon Bot', 2380], ['Hız Makinesi', 2190], ['Demir Küp', 2040], ['Piramit Bot', 1880],
+    ['Kristal Bot', 1750], ['Mega Robot', 1620], ['Turbo Küp', 1505], ['Robo Çözücü', 1390], ['Çelik Bot', 1280],
+    ['Neon Bot', 1175], ['Mıknatıs Bot', 1080], ['Zeki Robot', 990], ['Pusula Bot', 905], ['Yıldız Bot', 820],
+    ['Roket Bot', 745], ['Bulut Bot', 670], ['Şimşek Bot', 600], ['Kedi Bot', 530], ['Yağmur Bot', 470],
+    ['Fener Bot', 410], ['Minik Robot', 355], ['Toprak Bot', 300], ['Rüzgar Bot', 250], ['Çırak Bot', 205],
+    ['Oyuncak Bot', 160], ['Bebek Bot', 120], ['Uykucu Bot', 85], ['Acemi Bot', 50], ['Yeni Bot', 20],
   ].map(([name, tr]) => ({ name, tr }));
 
   // Tür avantajı: Küp > Piramit > Özel > Küp

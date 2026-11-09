@@ -84,9 +84,9 @@
         <span><b>Arkadaşınla oyna</b><small>Aynı telefonda 2 kişilik maç</small></span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm8 0a4 4 0 1 1 0-8 4 4 0 0 1 0 8ZM2 20c0-3.3 2.7-6 6-6s6 2.7 6 6H2Zm12.6 0a7.9 7.9 0 0 0-2-5.3A6 6 0 0 1 22 20h-7.4Z"/></svg>
       </button>
-      <h3 class="sub-title">Sıralama</h3>
-      <ol class="rank" id="rank"></ol>
-      <p class="note">Şimdilik rakipler bilgisayar oyuncuları; çevrimiçi sıralama sunucu bağlanınca gelecek.</p>
+      <h3 class="sub-title">Kupa Yolu</h3>
+      <p class="note">Her 100 kupada bir ödül. Kupa kaybetsen bile kazandığın ödüller gitmez.</p>
+      <div class="road" id="road"></div>
     </section>
 
     <!-- MAĞAZA -->
@@ -205,6 +205,10 @@
     <div class="power-track"><span class="perfect"></span><span class="power-needle"></span></div>
     <div class="power-hint">Yeşilin tam ortası: MÜKEMMEL vuruş (1,5 kat)</div>
   </div>
+  <div class="defend" id="defend" hidden>
+    <span class="def-hint">Rakip saldırıyor! Halka kalkana değince dokun!</span>
+    <span class="def-wrap"><span class="def-ring" id="def-ring"></span><button class="def-btn" id="def-btn">SAVUN!</button></span>
+  </div>
   <div class="b-acts" id="b-acts">
     <button class="btn btn-big" id="act-atk">Saldır<small>Normal hasar</small></button>
     <button class="btn btn-pink btn-big" id="act-skill">Yetenek</button>
@@ -237,6 +241,16 @@
   </div>
 </div>
 
+<div class="tut" id="tut" hidden>
+  <div class="tut-hole" id="tut-hole"></div>
+  <div class="tut-bubble" id="tut-bubble">
+    <svg class="mascot" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4 58 18v28L32 60 6 46V18z" fill="#ffc928" stroke="#0b1033" stroke-width="4" stroke-linejoin="round"/><path d="M6 18l26 14 26-14M32 32v28" fill="none" stroke="#0b1033" stroke-width="3"/><path d="M32 32 58 18v28L32 60z" fill="#ff8a1f" stroke="#0b1033" stroke-width="4" stroke-linejoin="round"/><circle cx="17" cy="34" r="4.5" fill="#0b1033"/><circle cx="26" cy="38" r="4.5" fill="#0b1033"/><circle cx="18.5" cy="32.5" r="1.5" fill="#fff"/><circle cx="27.5" cy="36.5" r="1.5" fill="#fff"/><path d="M15 44q6 5 12 3" fill="none" stroke="#0b1033" stroke-width="3" stroke-linecap="round"/></svg>
+    <div class="tut-text"><b id="tut-title"></b><p id="tut-msg"></p></div>
+    <div class="tut-actions"><button class="btn btn-small" id="tut-skip">Geç</button><button class="btn btn-yellow btn-small" id="tut-next">İleri</button></div>
+    <span class="tut-step" id="tut-step"></span>
+  </div>
+</div>
+<div class="coach" id="coach" hidden><svg class="mascot" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4 58 18v28L32 60 6 46V18z" fill="#ffc928" stroke="#0b1033" stroke-width="4" stroke-linejoin="round"/><path d="M32 32 58 18v28L32 60z" fill="#ff8a1f" stroke="#0b1033" stroke-width="4" stroke-linejoin="round"/><circle cx="17" cy="34" r="4.5" fill="#0b1033"/><circle cx="26" cy="38" r="4.5" fill="#0b1033"/></svg><span id="coach-msg"></span></div>
 <div class="toast" id="toast" hidden></div>
 
 <script src="vendor/three.min.js"></script>
@@ -252,6 +266,7 @@
 <script src="js/arena.js"></script>
 <script src="js/solve.js"></script>
 <script src="js/home.js"></script>
+<script src="js/tutorial.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

@@ -54,20 +54,47 @@
     miniRow($('my-team'), S.team.map(id => ({ id, lvl: G.level(id) })));
     miniRow($('opp-team'), opp.team);
     $('opp-name').textContent = opp.name;
-    $('opp-tr').textContent = opp.tr + ' kupa';
+    $('opp-tr').innerHTML = `<span class="opp-bot">BİLGİSAYAR</span> ${opp.tr} kupa`;
     $('fight').disabled = !S.team.length;
-    renderRank();
+    renderRoad();
   }
   G.renderArena = render;
 
-  function renderRank() {
+  // ---------- Kupa Yolu: her 100 kupada bir ödül ----------
+  const ROAD = Array.from({ length: 30 }, (_, i) => {
+    const tr = (i + 1) * 100;
+    if (tr % 1000 === 0) return { tr, text: 'Efsane Paketi', pack: 'efsane' };
+    if (tr % 500 === 0) return { tr, text: 'Usta Paketi', pack: 'usta' };
+    if (tr % 200 === 0) return { tr, text: 'Klasik Paket', pack: 'klasik' };
+    return { tr, text: `${100 + i * 20} jeton`, coins: 100 + i * 20 };
+  });
+  const TR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v3h3v3a4 4 0 0 1-4 4h-.4A5 5 0 0 1 13 15.9V18h3v3H8v-3h3v-2.1A5 5 0 0 1 8.4 13H8a4 4 0 0 1-4-4V6h3V3Z" fill="#ffc928" stroke="#0b1033" stroke-width="1.5"/></svg>';
+  function renderRoad() {
     const S = G.S;
-    const list = botList().concat([{ name: S.name, tr: S.trophies, you: true }]).sort((a, b) => b.tr - a.tr);
-    const ol = $('rank'); ol.innerHTML = '';
-    list.forEach((x, i) => {
-      ol.appendChild(h('li', x.you ? 'you' : '', `<span class="pos">${i + 1}</span><span class="who">${esc(x.name)}${x.you ? ' (sen)' : ''}</span><span class="tr">${x.tr}</span>`));
+    S.road = S.road || [];
+    const best = Math.max(S.bestTr || 0, S.trophies);
+    const wrap = $('road'); wrap.innerHTML = '';
+    let focus = null;
+    ROAD.forEach(r => {
+      const reached = best >= r.tr, claimed = S.road.includes(r.tr);
+      const el = h('div', `road-step${reached ? ' reached' : ''}${claimed ? ' claimed' : ''}${r.pack ? ' big' : ''}`,
+        `<span class="road-tr">${TR_SVG}${r.tr}</span><small>${esc(r.text)}</small>`);
+      const b = h('button', 'btn btn-small ' + (reached && !claimed ? 'btn-green' : ''), claimed ? 'Alındı' : reached ? 'Al' : `${r.tr - best} kupa`);
+      b.disabled = !reached || claimed;
+      b.onclick = () => {
+        if (S.road.includes(r.tr)) return;
+        S.road.push(r.tr);
+        if (r.coins) { G.addCoins(r.coins); window.FX.coins(6, b); G.toast(`+${r.coins} jeton`); }
+        if (r.pack) { S.packs[r.pack]++; window.FX.confetti(60); G.toast(`${r.text} Mağaza’da seni bekliyor!`); }
+        G.save(); renderRoad();
+      };
+      el.appendChild(b);
+      wrap.appendChild(el);
+      if (!focus && (!claimed || !reached)) focus = el;
     });
+    if (focus) requestAnimationFrame(() => { wrap.scrollLeft = focus.offsetLeft - 20; });
   }
+  G.roadClaimable = () => { const S = G.S, best = Math.max(S.bestTr || 0, S.trophies); return ROAD.some(r => best >= r.tr && !(S.road || []).includes(r.tr)); };
 
   $('opp-new').onclick = () => { opp = makeOpponent(); render(); };
   $('fight').onclick = () => {
@@ -83,6 +110,7 @@
         const before = leagueOf(S.trophies);
         const tr = res.won ? 25 + ((Math.random() * 7) | 0) : -Math.min(15, S.trophies);
         S.trophies += tr;
+        S.bestTr = Math.max(S.bestTr || 0, S.trophies);
         G.bump('arena'); G.bump(res.won ? 'wins' : 'losses');
         G.addCoins(coins); G.addXP(res.won ? 30 : 10);
         G.save();
