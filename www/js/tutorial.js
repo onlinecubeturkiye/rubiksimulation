@@ -123,8 +123,8 @@
       { sel: '#season-bar', title: 'Sezon Yolu', text: 'Oynadıkça XP kazanır, Sezon Yolu’nda ilerlersin. Sonunda Mitik bir küp seni bekliyor!' },
       { sel: '[data-tab=shop]', title: 'Mağaza', text: 'Paket açıp yeni küpler bulursun. Her 3 saatte bir bedava paket var.' },
       { sel: '[data-tab=inv]', title: 'Koleksiyon', text: 'En iyi 3 küpünü takıma koy ve jetonla güçlendir. Aynı küpten tekrar çıkarsa seviyesi kendiliğinden artar.' },
-      { sel: '[data-tab=arena]', title: 'Arena', text: 'Bilgisayar rakiplere karşı kupa kazan, ligini yükselt, Kupa Yolu ödüllerini topla. Arkadaşınla aynı telefonda da oynayabilirsin.' },
-      { sel: '[data-tab=solve]', title: 'Çöz', text: '3B küpü parmağınla çevir. Karıştırıp çözersen jeton kazanırsın. Her gün yeni bir bulmaca var.' },
+      { sel: '[data-tab=arena]', title: 'Arena', text: 'Kupa kazan, Bronz’dan Efsane’ye rütbe atla! Her 6 saatte bir mod değişir. Arkadaşınla aynı telefonda da oynayabilirsin.' },
+      { sel: '[data-tab=base]', title: 'Atölye', text: 'Kendi atölyeni kur! Jeton Madeni sen yokken jeton biriktirir, Laboratuvar küplerini güçlendirir. Küp çözmeyi seviyorsan Küp Masası da burada.' },
       { sel: '#home-play', title: 'Hazırsın!', text: first ? 'Sana hoş geldin hediyesi olarak bir paket veriyorum. Açtıktan sonra OYNA’ya bas ve ilk savaşına gir!' : 'OYNA’ya bas ve maceraya devam et!', last: first ? 'Paketi aç' : 'Tamam' },
     ], () => {
       G.S.seenIntro = true; G.S.tut = G.S.tut || {}; G.S.tut.tour = true; G.save();

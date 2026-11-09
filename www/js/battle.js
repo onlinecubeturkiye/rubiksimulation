@@ -44,6 +44,12 @@
     $('b-auto').textContent = 'Oto: Kapalı';
     $('b-quit').textContent = cfg.mode === 'pvp' ? 'Bitir' : 'Pes et';
     B.A.energy = 2; B.B.energy = 2;
+    // Arena modu: can çarpanı
+    const hpM = cfg.mod && cfg.mod.hp;
+    if (hpM) ['A', 'B'].forEach(k => B[k].list.forEach(f => { f.max = f.hp = Math.round(f.max * hpM); }));
+    // Atölye: Laboratuvar oyuncunun küplerini güçlendirir
+    const lab = G.baseBonus ? G.baseBonus('lab') : 0;
+    if (lab && cfg.mode !== 'pvp') B.A.list.forEach(f => { f.max = f.hp = Math.round(f.max * (1 + lab)); f.atk = Math.round(f.atk * (1 + lab)); });
     // İlk savaş: Küpi ilk 3 turu adım adım gösterir
     B.guided = cfg.mode === 'stage' && !(G.S.tut && G.S.tut.guided); B.gTurn = 0;
     // Rehberli savaş 3 tur sürsün diye rakip daha dayanıklı ama daha zayıf vurur
@@ -69,7 +75,7 @@
   }
   async function takeTurn(side) {
     const f = cur(side);
-    B[side].energy = Math.min(MAXE, (B[side].energy || 0) + 2);
+    B[side].energy = Math.min(MAXE, (B[side].energy || 0) + ((B.cfg.mod && B.cfg.mod.energy) || 2));
     B.turnSide = side;
     renderAll();
     if (f.stun) {
@@ -226,7 +232,7 @@
     let dmg = a.atk * rand(0.85, 1.15) * k;
     const e = eff(a, d);
     dmg *= e;
-    const crit = Math.random() < (a.def.brand === 'zenko' ? 0.2 : 0.1);
+    const crit = Math.random() < (a.def.brand === 'zenko' ? 0.2 : 0.1) + ((B.cfg.mod && B.cfg.mod.crit) || 0);
     if (crit) dmg *= a.def.brand === 'vexa' ? 2 : 1.5;
     return { dmg: Math.max(1, Math.round(dmg)), crit, e };
   }

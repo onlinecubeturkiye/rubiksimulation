@@ -2,7 +2,7 @@
 (function () {
   const { $, h, esc, D } = G;
   const Snd = window.Sound;
-  const RENDER = { home: () => G.renderHome(), adv: () => G.renderAdventure(), arena: () => G.renderArena(), shop: () => G.renderShop(), inv: () => G.renderInv(), solve: () => G.renderSolve() };
+  const RENDER = { base: () => G.renderBase(), home: () => G.renderHome(), adv: () => G.renderAdventure(), arena: () => G.renderArena(), shop: () => G.renderShop(), inv: () => G.renderInv(), solve: () => G.renderSolve() };
 
   G.current = 'home';
   G.show = function (tab) {
@@ -10,7 +10,8 @@
     G.current = tab;
     document.querySelectorAll('.tab').forEach(s => (s.hidden = s.id !== 'tab-' + tab));
     document.querySelectorAll('#tabs button').forEach(b => {
-      if (b.dataset.tab === (tab === 'adv' ? 'home' : tab)) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+      const nav = tab === 'adv' ? 'home' : tab === 'solve' ? 'base' : tab;
+      if (b.dataset.tab === nav) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
     window.Sim.active = tab === 'solve';
     RENDER[tab]();
@@ -86,7 +87,7 @@
         <button class="btn btn-small" id="set-intro">Nasıl oynanır?</button>
         <button class="btn btn-small danger" id="set-reset">Oyunu sıfırla</button>
       </div>
-      <p class="note">Küp Arena v2.6 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
+      <p class="note">Küp Arena v2.7 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
     if (!body) return;
     if (G.auth.enabled) {
       if ($('ra-in')) $('ra-in').onclick = () => G.auth.openLogin('profile');
@@ -174,6 +175,7 @@
   G.ensureQuests();
   G.save();
   $('adv-back').onclick = () => { Snd.click(); G.show('home'); };
+  $('solve-back').onclick = () => { Snd.click(); G.show('base'); };
   G.show('home');
   if (!G.S.seenIntro) G.startTour(true);
   else if (!(G.S.tut && G.S.tut.tour)) G.startTour(false); // eski oyunculara yeni eğitici bir kez gösterilir

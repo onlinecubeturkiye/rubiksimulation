@@ -16,12 +16,12 @@ Paket aç, küp topla, maceraya çık, savaş ve çöz. Telefonda (Android uygul
 
 - **Macera:** 6 dünya × 6 bölüm (Oyuncak Kasabası, Buz Vadisi, Ateş Dağı, Altın Çöl, Galaksi Kalesi, Kaos Boyutu). Her dünyada savaşlar, bir küp bulmacası ve bir boss var. Bölümlerden 1–3 yıldız alınır, her boss nadir bir bulmaca verir.
 - **Sonsuz Kule:** Bitmeyen mod. Kat kat zorlaşır, her 5 katta kayıt noktası, her 10 katta muhafız.
-- **Arena:** Bilgisayar rakiplere karşı kupa maçları, ligler (Bronz → Efsane) ve her 100 kupada ödül veren Kupa Yolu.
+- **Arena ve rütbe:** 15 basamaklı rütbe (Bronz III → Efsane), rütbe koruması, rütbe atlama ödülleri ve 28 günlük rütbe sezonu. Her 6 saatte değişen modlar: Klasik, Enerji Fırtınası, Kritik Gecesi, Dev Küpler, Teke Tek. Her 100 kupada ödül veren Kupa Yolu.
+- **Atölye:** Jeton Madeni, Antrenman Salonu, Kutu Deposu ve Laboratuvar yükseltilir (tek Usta Robot). Küp çözmek isteyenler için Küp Masası (3B küp, günlük bulmaca).
 - **2 kişilik maç:** Aynı telefonda arkadaşınla. Herkes 3 bulmaca seçer, sırayla oynarsınız.
 - **Mağaza:** 3 paket, her 3 saatte bedava paket, günlük hediye, günün fırsatı.
 - **Markalar:** 5 kurgusal küp markası (ZENKO, KAIRO, HAYATE, TORVA, VEXA). Her birinin kendi logosu, modelleri, marka kutusu ve savaşta bir avantajı var. Gerçek markalarla ilgisi yoktur.
 - **Envanter:** 26 bulmaca. Kopyalar seviye yükseltir, jetonla güçlendirme, fazlaları satma.
-- **Çöz:** 3B küp simülatörü (2×2–7×7), günlük bulmaca, ipucu.
 - **Amaçlar:** Günlük görevler, 22 başarım, oyuncu seviyesi (her 5 seviyede bedava paket).
 
 ### Savaş

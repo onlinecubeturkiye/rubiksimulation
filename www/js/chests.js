@@ -88,6 +88,8 @@
     if (ms < 60000) return `${Math.ceil(ms / 1000)} sn`;
     return `${m} dk`;
   };
+  // Atölye: Kutu Deposu her seviyede %10 hızlandırır
+  const boxMs = (def) => Math.round(def.mins * 60000 * (1 - (G.baseBonus ? G.baseBonus('depot') : 0)));
   const rushCost = (ms) => Math.max(10, Math.ceil((ms / 60000) * 1.5));
 
   // Galibiyette sandık ver (yuva boşsa). Döndürür: sandık türü ya da null.
@@ -132,7 +134,7 @@
         const def = D.CHESTS[c.type];
         const info = st === 'ready' ? '<b class="sc-open">AÇ!</b>'
           : st === 'unlocking' ? `<b class="sc-time">${fmt(c.end - now())}</b>`
-          : `<small>${fmt(def.mins * 60000)}</small><b class="sc-unlock">Aç</b>`;
+          : `<small>${fmt(boxMs(def))}</small><b class="sc-unlock">Aç</b>`;
         b.innerHTML = `${G.chestSVG(c.type)}<span class="box-name">${esc(def.short)}</span>${info}`;
       }
       b.onclick = () => tapSlot(i);
@@ -148,7 +150,7 @@
     if (st === 'empty') return G.toast('Savaş kazan, küp kutusu kazan! Boş raflar dolsun.');
     const def = D.CHESTS[c.type];
     if (st === 'ready') { list[i] = null; G.save(); renderSlots(); return openChest(c.type); }
-    const left = st === 'unlocking' ? c.end - now() : def.mins * 60000;
+    const left = st === 'unlocking' ? c.end - now() : boxMs(def);
     const cost = rushCost(left);
     const body = G.modal(def.name, `
       <div class="chest-big">${G.chestSVG(c.type)}</div>
@@ -156,7 +158,7 @@
       <p>${st === 'unlocking' ? `Açılıyor: <b>${fmt(left)}</b> kaldı` : `Açılması <b>${fmt(left)}</b> sürer.`}</p>
       ${st === 'locked' && anyUnlocking() ? '<p class="note">Aynı anda tek kutu açılabilir. Diğeri bitince bunu başlat.</p>' : ''}`,
       [
-        ...(st === 'locked' ? [{ label: 'Açmaya başla', cls: 'btn-green', disabled: anyUnlocking(), onClick: () => { c.end = now() + def.mins * 60000; G.save(); renderSlots(); } }] : []),
+        ...(st === 'locked' ? [{ label: 'Açmaya başla', cls: 'btn-green', disabled: anyUnlocking(), onClick: () => { c.end = now() + boxMs(def); G.save(); renderSlots(); } }] : []),
         { label: `Hemen aç (${cost})`, cls: 'btn-yellow', disabled: G.S.coins < cost, onClick: () => {
           if (G.S.coins < cost) return;
           G.S.coins -= cost; G.coinFloat(-cost); list[i] = null; G.save(); renderSlots(); openChest(c.type);

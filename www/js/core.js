@@ -107,6 +107,7 @@
   G.xpNeed = (lv) => 100 + 60 * (lv - 1);
   G.addXP = function (n) {
     const S = G.S;
+    if (G.baseBonus) n = Math.round(n * (1 + G.baseBonus('gym')));
     S.xp += n;
     G.seasonState().pts += n;
     while (S.xp >= G.xpNeed(S.level)) {
@@ -290,6 +291,8 @@
     const arenaTab = document.querySelector('[data-tab=arena]');
     if (arenaTab && G.roadClaimable) arenaTab.classList.toggle('dot', G.unlocked('arena') && G.roadClaimable());
     if (arenaTab) arenaTab.classList.toggle('locked-tab', !G.unlocked('arena'));
+    const baseTab = document.querySelector('[data-tab=base]');
+    if (baseTab && G.baseNeedsAttention) baseTab.classList.toggle('dot', G.baseNeedsAttention());
     const homeTab = document.querySelector('[data-tab=home]');
     if (homeTab && S.quests) homeTab.classList.toggle('dot', G.questsClaimable() || (G.chestsReady && G.chestsReady()) || G.seasonClaimable());
     const packCount = S.packs.klasik + S.packs.usta + S.packs.efsane;
