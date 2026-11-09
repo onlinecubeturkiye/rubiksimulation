@@ -51,7 +51,8 @@
     $('free-btn').disabled = freeLeft > 0;
     const spun = S.wheelDay === G.dayIndex();
     $('wheel-text').textContent = spun ? 'Yarın yine çevirebilirsin.' : 'Bugünkü bedava çevirme hazır!';
-    $('wheel-btn').disabled = spun;
+    $('wheel-btn').disabled = spun || !G.unlocked('wheel');
+    if (!G.unlocked('wheel')) $('wheel-text').textContent = G.lockText('wheel');
 
     // Sahip olunan paketler
     const owned = D.PACKS.filter(p => S.packs[p.id] > 0);
@@ -84,10 +85,12 @@
     // Satılık paketler
     const wrap = $('packs'); wrap.innerHTML = '';
     $('brand-packs').innerHTML = '';
+    const brandsOpen = G.unlocked('brands');
+    if (!brandsOpen) $('brand-packs').appendChild(h('div', 'tier-head', `<span class="tier" style="--tc:#b9c5ff">🔒 Kilitli</span><span>${G.lockText('brands')}. Önce temel paketlerle başla!</span>`));
     const tierKeys = Object.keys(D.TIERS);
     const tierIdx = (p) => p.brand ? tierKeys.indexOf(D.BRANDS[p.brand].tier) : -1;
     let lastTier = null;
-    D.PACKS.slice().sort((a, b) => tierIdx(a) - tierIdx(b)).forEach(p => {
+    D.PACKS.slice().sort((a, b) => tierIdx(a) - tierIdx(b)).filter(p => brandsOpen || !p.brand).forEach(p => {
       if (p.brand && D.BRANDS[p.brand].tier !== lastTier) {
         lastTier = D.BRANDS[p.brand].tier;
         const t = D.TIERS[lastTier];
@@ -143,7 +146,7 @@
   }
   $('wheel-btn').onclick = () => {
     const S = G.S;
-    if (S.wheelDay === G.dayIndex()) return;
+    if (S.wheelDay === G.dayIndex() || G.needUnlock('wheel')) return;
     const body = G.modal('Şans Çarkı', `<div class="wheel-wrap"><canvas width="600" height="600"></canvas><span class="wheel-hub"></span></div><p id="wheel-res">Çevirmek için düğmeye bas!</p>`,
       [{ label: 'Çevir!', cls: 'btn-pink', keep: true, onClick: spin }], { replace: true });
     if (!body) return;

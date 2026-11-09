@@ -70,6 +70,12 @@
       <div class="pstats">${st.map(([k, v]) => `<div><span class="label">${k}</span><b>${v}</b></div>`).join('')}</div>
       <div class="sec-head"><h3>Başarımlar</h3><span class="note">${doneAch}/${D.ACHIEVEMENTS.length}</span></div>
       <ul class="ach">${ach}</ul>
+      ${G.auth.enabled ? `<h3>RA ID hesabı</h3>
+      <div class="account">${G.auth.user
+        ? `<span>Giriş yapıldı: <b>${esc(G.auth.user.email || G.auth.user.displayName || 'RA ID')}</b><br><small>İlerlemen buluta kaydediliyor.</small></span>
+           <div class="settings"><button class="btn btn-small" id="ra-out">Çıkış yap</button><button class="btn btn-small danger" id="ra-del">Hesabımı sil</button></div>`
+        : `<span>Giriş yapmadın. ${G.auth.trialLeft() ? `${G.auth.trialLeft()} deneme maçın kaldı.` : 'Deneme maçların bitti.'}</span>
+           <button class="btn btn-yellow" id="ra-in">RA ID ile giriş yap</button>`}</div>` : ''}
       <h3>Ayarlar</h3>
       <div class="settings">
         <button class="btn btn-small" id="set-sound">Ses: ${S.settings.sound ? 'Açık' : 'Kapalı'}</button>
@@ -79,8 +85,13 @@
         <button class="btn btn-small" id="set-intro">Nasıl oynanır?</button>
         <button class="btn btn-small danger" id="set-reset">Oyunu sıfırla</button>
       </div>
-      <p class="note">Küp Arena v2.2 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
+      <p class="note">Küp Arena v2.3 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
     if (!body) return;
+    if (G.auth.enabled) {
+      if ($('ra-in')) $('ra-in').onclick = () => G.auth.openLogin('profile');
+      if ($('ra-out')) $('ra-out').onclick = () => G.confirm('Çıkış yap?', 'Bu cihazdaki ilerleme kalır. Tekrar giriş yapınca buluttan devam edersin.', 'Çıkış yap', G.auth.signOut);
+      if ($('ra-del')) $('ra-del').onclick = () => G.confirm('Hesabın silinsin mi?', 'RA ID hesabın ve buluttaki Küp Arena kaydın kalıcı olarak silinir. Bu geri alınamaz.', 'Kalıcı olarak sil', G.auth.deleteAccount);
+    }
     $('set-power').onclick = () => { S.settings.power = S.settings.power === false; G.save(); openProfile(); };
     $('set-sound').onclick = () => { S.settings.sound = !S.settings.sound; Snd.setEnabled(S.settings.sound); G.save(); openProfile(); };
     $('set-name').onclick = rename;

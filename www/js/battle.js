@@ -26,6 +26,8 @@
   const powerOn = () => G.S.settings.power !== false;
 
   G.battle = function (cfg) {
+    // Deneme maçları bittiyse önce RA ID ile giriş
+    if (cfg.mode !== 'pvp' && G.auth && G.auth.needsLogin()) { G.auth.openLogin('trial', () => G.battle(cfg)); return; }
     B = {
       mode: cfg.mode, cfg, auto: false, fast: false, over: false, resolve: null, turnSide: 'A',
       A: { list: cfg.teamA.map(mkF), idx: 0, name: cfg.nameA || G.S.name },

@@ -45,6 +45,16 @@
 
   function render() {
     const S = G.S;
+    const locked = !G.unlocked('arena');
+    $('tab-arena').classList.toggle('is-locked', locked);
+    $('arena-lock').hidden = !locked;
+    if (locked) {
+      const need = G.xpNeed(S.level), pct = S.level >= 3 ? 100 : Math.round(((S.level - 1) * 100 + S.xp / need * 100) / 2);
+      $('arena-lock').innerHTML = `<div class="lock-ico">🔒</div><h3>Arena seviye 3’te açılır</h3><p>Önce Macera’da oyunu öğren. Savaş kazandıkça XP toplar, seviye atlarsın.</p><div class="bar"><i style="width:${pct}%"></i></div><small>Şu an seviye ${S.level}</small>`;
+      const b = h('button', 'btn btn-yellow btn-big', 'Maceraya git'); b.onclick = () => G.show('adv'); $('arena-lock').appendChild(b);
+      return;
+    }
+    $('pvp-btn').classList.toggle('locked', !G.unlocked('pvp'));
     const lg = leagueOf(S.trophies), nx = LEAGUES[LEAGUES.indexOf(lg) + 1];
     $('league').innerHTML = `
       <div><span class="label">Ligin</span><div class="league-name" style="color:${lg.color}">${lg.name}</div>
@@ -131,7 +141,7 @@
 
   // ---------- 2 kişilik maç (aynı telefon) ----------
   const PVP_LVL = 5;
-  $('pvp-btn').onclick = () => draft(1, []);
+  $('pvp-btn').onclick = () => { if (G.needUnlock('pvp')) return; draft(1, []); };
   function draft(player, p1) {
     const picked = [];
     const body = G.modal(`${player}. Oyuncu: 3 bulmaca seç`, `

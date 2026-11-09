@@ -646,3 +646,25 @@ main:has(.tab-home:not([hidden])) { display: flex; flex-direction: column; }
 .road-step .btn { width: 100%; }
 .opp-bot { font-size: 0.62rem; letter-spacing: 0.08em; background: rgba(255,255,255,0.15); border: 2px solid var(--ink); border-radius: 99px; padding: 0 8px; }
 .coach { left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); width: auto; max-width: 420px; margin: 0 auto; transform: none; }
+
+/* Yeni başlayan kilitleri */
+.tab.is-locked > :not(.sec-title):not(.lock-card) { display: none !important; }
+.lock-card { display: grid; justify-items: center; gap: 10px; text-align: center; padding: 22px 16px; background: var(--panel); border: 3px solid var(--ink); border-radius: 22px; box-shadow: var(--panel-shadow); }
+.lock-card .lock-ico { font-size: 3rem; line-height: 1; filter: drop-shadow(0 3px 0 var(--ink)); }
+.lock-card h3 { font-family: var(--font-display); font-size: 1.4rem; text-shadow: var(--outline); }
+.lock-card p { margin: 0; color: var(--dim); }
+.lock-card .bar { width: 100%; }
+.lock-card .btn { width: 100%; }
+.play-side.locked, .pvp-card.locked, .season-bar.locked { filter: grayscale(0.85) brightness(0.85); }
+.tabs button.locked-tab svg { filter: grayscale(1) brightness(0.6); }
+.tabs button.locked-tab::before { content: "🔒"; position: absolute; top: -2px; right: calc(50% - 22px); font-size: 0.8rem; }
+
+/* RA ID giriş */
+.gbtn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; --b1: #ffffff; --b2: #eef2ff; --bd: #c9cfee; --t: #0b1033; text-shadow: none; }
+.g-ico { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-family: Arial, sans-serif; font-weight: 900; color: #fff; background: conic-gradient(#ea4335 0 25%, #fbbc05 0 50%, #34a853 0 75%, #4285f4 0); }
+.or { width: 100%; display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--dim); }
+.or::before, .or::after { content: ""; flex: 1; height: 2px; background: rgba(255,255,255,0.15); }
+.linkbtn { background: none; border: 0; color: var(--gold); font: inherit; font-size: 0.85rem; text-decoration: underline; cursor: pointer; }
+.ra-err { color: #ff9aa5 !important; min-height: 1.2em; margin: 0; }
+.account { width: 100%; display: grid; gap: 8px; text-align: left; background: rgba(11,16,51,0.45); border: 2px solid var(--ink); border-radius: 14px; padding: 10px; color: #fff; }
+.account small { color: var(--dim); }

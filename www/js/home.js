@@ -15,7 +15,7 @@
     const ev = G.event();
     const eb = $('event-banner');
     eb.style.setProperty('--ev', ev.color);
-    eb.innerHTML = `<span class="ev-tag">ETKİNLİK</span><div><b>${esc(ev.name)}</b><small>${esc(ev.desc)}</small></div><span class="ev-time">${ev.daysLeft} gün</span>`;
+    eb.innerHTML = `<span class="ev-tag">ETKİNLİK</span><div><b>${esc(ev.name)}</b><small>${esc(ev.desc)}${ev.id === 'brand' && !G.unlocked('brands') ? ' (marka kutuları seviye 5’te açılır)' : ''}</small></div><span class="ev-time">${ev.daysLeft} gün</span>`;
 
     // Vitrin
     const list = favList();
@@ -29,8 +29,12 @@
     $('chest-home').classList.toggle('ready', ready);
     $('chest-home-txt').textContent = ready ? 'Aç!' : `Sandık ${S.keys}/3`;
     $('login-btn').classList.toggle('dot', S.login.day !== G.dayIndex());
-    $('wheel-home').classList.toggle('dot', S.wheelDay !== G.dayIndex());
+    $('wheel-home').classList.toggle('dot', S.wheelDay !== G.dayIndex() && G.unlocked('wheel'));
+    $('wheel-home').classList.toggle('locked', !G.unlocked('wheel'));
     $('season-btn').classList.toggle('dot', G.seasonClaimable());
+    $('season-btn').classList.toggle('locked', !G.unlocked('season'));
+    $('season-bar').classList.toggle('locked', !G.unlocked('season'));
+    $('home-arena').classList.toggle('locked', !G.unlocked('arena'));
     $('tower-home').classList.toggle('locked', !S.adv.bosses.includes('w1'));
 
     // Sezon çubuğu
@@ -41,7 +45,10 @@
     // Oyna
     const next = G.nextStage && G.nextStage();
     $('home-play-sub').textContent = next ? `Bölüm ${next.label} · ${next.w.name}` : 'Macera bitti! Yıldız topla';
-    $('home-arena-sub').textContent = `${S.trophies} kupa`;
+    const A = G.auth;
+    if (A && A.enabled && A.ready && !A.user) $('home-play-sub').textContent = A.trialLeft() ? `Deneme: ${A.trialLeft()} maç kaldı` : 'RA ID ile giriş yap';
+    $('home-arena-sub').textContent = G.unlocked('arena') ? `${S.trophies} kupa` : 'Seviye 3’te açılır';
+    if (!G.unlocked('season')) $('season-bar').innerHTML = `<span class="s-tier">🔒</span><span class="s-mid"><b>Sezon Yolu</b><small>Seviye 2’de açılır. Macera’da oynayıp seviye atla!</small></span><small></small>`;
   }
   G.renderHome = render;
 
@@ -59,15 +66,16 @@
     const next = G.nextStage && G.nextStage();
     if (next) setTimeout(() => { const el = document.querySelector(`[data-stage="${next.id}"]`); if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 60);
   };
-  $('home-arena').onclick = () => { Snd.click(); G.show('arena'); };
+  $('home-arena').onclick = () => { Snd.click(); if (G.needUnlock('arena')) return; G.show('arena'); };
   $('chest-home').onclick = () => { G.openChest(); render(); };
   $('login-btn').onclick = () => { if (!G.checkLogin()) G.toast('Bugünün ödülünü aldın, yarın yine gel!'); };
   $('wheel-home').onclick = () => {
+    if (G.needUnlock('wheel')) return;
     if (G.S.wheelDay === G.dayIndex()) return G.toast('Çark yarın yine dönecek!');
     G.show('shop'); $('wheel-btn').click();
   };
   $('tower-home').onclick = () => {
-    if (!G.S.adv.bosses.includes('w1')) return G.toast('Sonsuz Kule, ilk dünyanın boss’unu yenince açılır'); G.show('adv'); setTimeout(() => $('tower').scrollIntoView({ block: 'center', behavior: 'smooth' }), 60); };
+    if (G.needUnlock('tower')) return; G.show('adv'); setTimeout(() => $('tower').scrollIntoView({ block: 'center', behavior: 'smooth' }), 60); };
   $('season-btn').onclick = openSeason;
   $('season-bar').onclick = openSeason;
   $('event-banner').onclick = () => {
@@ -78,6 +86,7 @@
   // ---------- Sezon Yolu ----------
   function openSeason() {
     Snd.click();
+    if (G.needUnlock('season')) return;
     const st = G.seasonState(), tier = G.seasonTier();
     const rows = [];
     for (let t = 1; t <= G.SEASON_TIERS; t++) {

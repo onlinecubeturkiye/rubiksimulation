@@ -203,7 +203,7 @@
 
   // ---------- Sonsuz Kule ----------
   let run = null;
-  const towerOpen = () => G.S.adv.bosses.includes('w1');
+  const towerOpen = () => G.unlocked('tower');
   function towerTeam(f) {
     const rng = G.seeded(f * 1013 + 7);
     const w = [Math.max(5, 60 - f * 2), 30, 8 + f, 2 + f * 0.6, f > 15 ? f * 0.3 : 0];

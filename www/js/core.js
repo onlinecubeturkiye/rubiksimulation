@@ -26,7 +26,7 @@
       lastGift: 0, lastFree: 0, dealDay: -1,
       stats, best: {}, adv: { stars: {}, bosses: [] }, towerCheckpoint: 0,
       quests: null, ach: {}, settings: { sound: true, power: true }, seenIntro: false, dailyDone: -1,
-      streak: 0, bestStreak: 0, keys: 0, login: { day: -1, streak: 0 }, wheelDay: -1,
+      streak: 0, bestStreak: 0, keys: 0, login: { day: -1, streak: 0 }, wheelDay: -1, trial: 0, account: null,
     };
   }
   function migrate(s) {
@@ -56,6 +56,7 @@
   };
   G.resetSave = function () { try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); };
   G.exportSave = () => btoa(unescape(encodeURIComponent(JSON.stringify(G.S))));
+  G.loadState = function (obj) { G.S = migrate(obj); };
   G.importSave = function (code) {
     try {
       const s = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
@@ -103,10 +104,26 @@
       S.coins += coins;
       const pack = S.level % 5 === 0 ? 'usta' : null;
       if (pack) S.packs.usta++;
-      G.notify(`Seviye ${S.level}!`, `<div class="big-num">Sv ${S.level}</div><p>+${coins} jeton${pack ? ' ve bedava <b>Usta Paketi</b>' : ''}</p>`);
+      const opened = Object.values(UNLOCK).filter(u => u.lv === S.level).map(u => u.name);
+      G.notify(`Seviye ${S.level}!`, `<div class="big-num">Sv ${S.level}</div><p>+${coins} jeton${pack ? ' ve bedava <b>Usta Paketi</b>' : ''}</p>${opened.length ? `<p class="good">Yeni açıldı: <b>${opened.join(', ')}</b>!</p>` : ''}`);
       window.Sound.win();
     }
   };
+
+  // ---------- Yeni başlayanlar için kilitler ----------
+  // Seviye kilitleri; 'w1' = ilk dünyanın boss'u yenilince açılır.
+  const UNLOCK = {
+    wheel:  { lv: 2, name: 'Şans Çarkı' },
+    season: { lv: 2, name: 'Sezon Yolu' },
+    arena:  { lv: 3, name: 'Arena' },
+    brands: { lv: 5, name: 'Marka Kutuları' },
+    tower:  { w1: true, name: 'Sonsuz Kule' },
+    pvp:    { w1: true, name: '2 Kişilik Maç' },
+  };
+  G.UNLOCK = UNLOCK;
+  G.unlocked = (k) => { const u = UNLOCK[k]; return u.w1 ? G.S.adv.bosses.includes('w1') : G.S.level >= u.lv; };
+  G.lockText = (k) => { const u = UNLOCK[k]; return u.w1 ? `${u.name}, Oyuncak Kasabası’nın boss’unu yenince açılır` : `${u.name} seviye ${u.lv}’de açılır`; };
+  G.needUnlock = (k) => { if (G.unlocked(k)) return false; G.toast(G.lockText(k)); return true; };
 
   // ---------- Sayaçlar, görevler, başarımlar ----------
   G.bump = function (stat, n = 1) { G.S.stats[stat] = (G.S.stats[stat] || 0) + n; };
@@ -164,6 +181,7 @@
   // ---------- Savaş sonrası bonuslar: seri, sandık anahtarı, mükemmel vuruş ----------
   G.afterBattle = function (res) {
     const S = G.S, lines = [];
+    if (G.auth && G.auth.enabled && !G.auth.user) S.trial = (S.trial || 0) + 1;
     S.stats.maxCombo = Math.max(S.stats.maxCombo || 0, res.maxCombo || 0);
     if (!res.won) {
       if (S.streak >= 2) lines.push(['Seri bitti', `${S.streak} galibiyet`]);
@@ -242,7 +260,7 @@
     return { text: `${60 + t * 10} jeton`, coins: 60 + t * 10 };
   };
   G.seasonTier = () => Math.min(G.SEASON_TIERS, Math.floor(G.seasonState().pts / G.SEASON_TIER));
-  G.seasonClaimable = () => { const st = G.seasonState(), t = G.seasonTier(); for (let i = 1; i <= t; i++) if (!st.claimed.includes(i)) return true; return false; };
+  G.seasonClaimable = () => { if (!G.unlocked('season')) return false; const st = G.seasonState(), t = G.seasonTier(); for (let i = 1; i <= t; i++) if (!st.claimed.includes(i)) return true; return false; };
 
   // ---------- Haftalık etkinlik ----------
   G.event = function () {
@@ -270,12 +288,13 @@
     $('hdr-xp').style.width = pct + '%';
     if (S.quests) $('quest-btn').classList.toggle('dot', G.questsClaimable());
     const arenaTab = document.querySelector('[data-tab=arena]');
-    if (arenaTab && G.roadClaimable) arenaTab.classList.toggle('dot', G.roadClaimable());
+    if (arenaTab && G.roadClaimable) arenaTab.classList.toggle('dot', G.unlocked('arena') && G.roadClaimable());
+    if (arenaTab) arenaTab.classList.toggle('locked-tab', !G.unlocked('arena'));
     const homeTab = document.querySelector('[data-tab=home]');
     if (homeTab && S.quests) homeTab.classList.toggle('dot', G.questsClaimable() || S.keys >= 3 || G.seasonClaimable());
     const packCount = S.packs.klasik + S.packs.usta + S.packs.efsane;
     const shopTab = document.querySelector('[data-tab=shop]');
-    if (shopTab) shopTab.classList.toggle('dot', packCount > 0 || S.lastGift + G.GIFT_MS <= Date.now() || S.lastFree + G.FREE_MS <= Date.now() || S.wheelDay !== dayIndex());
+    if (shopTab) shopTab.classList.toggle('dot', packCount > 0 || S.lastGift + G.GIFT_MS <= Date.now() || S.lastFree + G.FREE_MS <= Date.now() || (S.wheelDay !== dayIndex() && G.unlocked('wheel')));
 
   }
   G.renderHeader = renderHeader;
