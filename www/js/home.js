@@ -41,7 +41,7 @@
     // Sezon çubuğu
     const st = G.seasonState(), tier = G.seasonTier();
     const into = tier >= G.SEASON_TIERS ? G.SEASON_TIER : st.pts % G.SEASON_TIER;
-    $('season-bar').innerHTML = `<span class="s-tier">${tier}</span><span class="s-mid"><b>Sezon Yolu ${tier < G.SEASON_TIERS ? `· Sonraki: ${esc(G.seasonReward(tier + 1).text)}` : '· Tamamlandı!'}</b><span class="bar"><i style="width:${into / G.SEASON_TIER * 100}%"></i></span></span><small>${G.seasonDaysLeft()} gün</small>`;
+    $('season-bar').innerHTML = `<span class="s-tier">${tier}</span><span class="s-mid"><b>${esc(G.seasonTheme().name)} ${tier < G.SEASON_TIERS ? `· Sonraki: ${esc(G.seasonReward(tier + 1).text)}` : '· Tamamlandı!'}</b><span class="bar"><i style="width:${into / G.SEASON_TIER * 100}%"></i></span></span><small>${G.seasonDaysLeft()} gün</small>`;
 
     // Oyna
     const next = G.nextStage && G.nextStage();
@@ -92,16 +92,19 @@
     const rows = [];
     for (let t = 1; t <= G.SEASON_TIERS; t++) {
       const rw = G.seasonReward(t), reached = t <= tier, claimed = st.claimed.includes(t);
-      rows.push(`<div class="s-row${reached ? ' reached' : ''}${claimed ? ' claimed' : ''}${rw.pack || rw.mythic ? ' big' : ''}">
+      rows.push(`<div class="s-row${reached ? ' reached' : ''}${claimed ? ' claimed' : ''}${rw.pack || rw.mythic || rw.seasonCube ? ' big' : ''}">
         <span class="s-num">${t}</span><b>${esc(rw.text)}</b>
         <button class="btn btn-small ${reached && !claimed ? 'btn-green' : ''}" data-t="${t}" ${reached && !claimed ? '' : 'disabled'}>${claimed ? 'Alındı' : reached ? 'Al' : `${t * G.SEASON_TIER - st.pts} XP`}</button></div>`);
     }
-    const body = G.modal('Sezon Yolu', `
+    const th = G.seasonTheme(), sc = cubeById(th.cube);
+    const body = G.modal(th.name, `
+      <div class="season-hero" style="--sc:${th.color}"><canvas></canvas><div><small>30. kademe ödülü · yalnız bu sezon</small><b>${esc(sc.name)}</b><span>${D.TYPES[G.typeOf(sc)].name} · ${esc(D.SKILLS[sc.skill].name)}</span></div></div>
       <p>Oynadıkça kazandığın her XP sezon yolunda ilerletir. Sezon ${G.seasonDaysLeft()} gün sonra yenilenir.</p>
       <div class="bar" style="width:100%"><i style="width:${Math.min(100, st.pts / (G.SEASON_TIERS * G.SEASON_TIER) * 100)}%"></i></div>
       <div class="season-list">${rows.join('')}</div>`, [{ label: 'Kapat' }], { replace: true });
     if (!body) return;
     body.querySelectorAll('[data-t]').forEach(b => (b.onclick = () => claim(+b.dataset.t)));
+    R.drawPuzzle(body.querySelector('.season-hero canvas'), sc);
     const first = body.querySelector('.s-row:not(.reached)') || body.querySelector('.s-row:last-child');
     if (first) setTimeout(() => first.scrollIntoView({ block: 'center' }), 50);
   }
@@ -112,6 +115,11 @@
     const rw = G.seasonReward(t);
     if (rw.coins) { G.addCoins(rw.coins); window.FX.coins(6); G.toast(`+${rw.coins} jeton`); }
     if (rw.pack) { S.packs[rw.pack]++; G.toast(`${rw.text} Mağaza’da seni bekliyor!`); }
+    if (rw.seasonCube) {
+      const def = cubeById(rw.seasonCube), got = G.addCube(def.id);
+      window.FX.confetti(160);
+      G.notify('Sezon küpü!', `<p><b>${esc(def.name)}</b> ${got.isNew ? 'koleksiyonuna eklendi. Bu küp yalnız bu sezon kazanılabilir!' : `seviye ${got.lvl} oldu!`}</p>${got.holo ? '<p class="holo-txt">✨ Üstelik parlak!</p>' : ''}`);
+    }
     if (rw.mythic) {
       const pool = D.CUBES.filter(c => c.rarity === 'mythic');
       const def = pool.find(c => !S.inv[c.id]) || G.pickOne(pool);

@@ -1,158 +1,464 @@
-// Savaş motoru: Macera, Kule, Arena ve 2 kişilik maç bunu kullanır.
-// G.battle({ mode, title, bg, nameA, nameB, teamA:[{id,lvl}], teamB:[{id,lvl,mult,boss,label}], onEnd(res) })
+// Savaş motoru: KÜP TAHTASI. Macera, Kule, Arena ve 2 kişilik maç bunu kullanır.
+// G.battle({ mode, title, bg, nameA, nameB, teamA:[{id,lvl}], teamB:[{id,lvl,mult,boss,label}], mod, onEnd(res) })
+// Tahta 3 sütun × 4 satır. Rakip üstte (0-1), oyuncu altta (2-3). Her takımın tüm küpleri sahadadır.
+// Her tur 3 hamle puanı: yürü 1, saldır 2, yetenek 1-3, sıra döndür 1 (turda bir kez).
 (function () {
-  const { $, h, esc, wait, rand, cubeById, D } = G;
+  const { $, h, esc, wait, cubeById, D } = G;
   const R = window.Render, Snd = window.Sound;
+  const COLS = 3, ROWS = 4, AP = 3;
   let B = null;
 
+  // ---------- Kurallar ----------
+  const typeKey = (f) => G.typeOf(f.def);
   const eff = (a, d) => {
-    const ta = G.typeOf(a.def), td = G.typeOf(d.def);
+    const ta = typeKey(a), td = typeKey(d);
     if (D.TYPES[ta].beats === td) return 1.3;
     if (D.TYPES[td].beats === ta) return 0.8;
     return 1;
   };
-  function mkF(x) {
+  // Menzil: Küp yanındakine (dört yön), Piramit düz çizgide 2 kareye, Özel çevresindeki 8 kareye vurur
+  const ROLE = {
+    kup: { name: 'Savaşçı', range: 'Yanındaki kareler', can: (dr, dc) => Math.abs(dr) + Math.abs(dc) === 1 },
+    piramit: { name: 'Nişancı', range: 'Düz çizgide 2 kare', can: (dr, dc) => (dr === 0 || dc === 0) && Math.abs(dr) + Math.abs(dc) <= 2 && (dr || dc) },
+    ozel: { name: 'Büyücü', range: 'Çevresindeki 8 kare', can: (dr, dc) => Math.max(Math.abs(dr), Math.abs(dc)) === 1 },
+  };
+  G.ROLE = ROLE;
+  const inRange = (a, d) => ROLE[typeKey(a)].can(d.r - a.r, d.c - a.c);
+  const SK_AP = { shield: 1, heal: 2, drain: 2, double: 3, stun: 3 };
+  const skillAP = (f) => Math.max(1, SK_AP[f.def.skill] - (f.def.brand === 'hayate' ? 1 : 0));
+  const NEED_TARGET = { double: 1, stun: 1, drain: 1 };
+
+  // Marka / tür uyumu (takım bonusu)
+  G.synergy = function (defs) {
+    const out = [];
+    const brands = {};
+    defs.forEach(d => { brands[d.brand] = (brands[d.brand] || 0) + 1; });
+    const top = Object.entries(brands).sort((a, b) => b[1] - a[1])[0];
+    if (top && top[1] >= 3) out.push({ id: 'brand3', name: `${D.BRANDS[top[0]].name} Ekibi`, desc: '+%20 saldırı, +%10 can', atk: 0.2, hp: 0.1, brand: top[0] });
+    else if (top && top[1] === 2) out.push({ id: 'brand2', name: `${D.BRANDS[top[0]].name} İkilisi`, desc: '+%10 saldırı', atk: 0.1, hp: 0, brand: top[0] });
+    const types = new Set(defs.map(d => G.typeOf(d)));
+    if (defs.length >= 3 && types.size === 3) out.push({ id: 'balance', name: 'Üçlü Denge', desc: 'İlk turda +1 hamle puanı', ap: 1 });
+    return out;
+  };
+
+  let uid = 0;
+  function mkF(x, side) {
     const def = cubeById(x.id);
     const st = G.statsOf(def, x.lvl, 1);
     const hpM = (x.mult || 1) * (x.boss ? 2.2 : 1), atkM = (x.mult || 1) * (x.boss ? 1.15 : 1);
     const hp = Math.round(st.hp * hpM);
-    return { def, lvl: x.lvl, hp, max: hp, atk: Math.round(st.atk * atkM), cd: 0, shield: def.brand === 'torva' ? 1 : 0, stun: false, boss: !!x.boss, label: x.label || def.name };
+    return { uid: ++uid, side, def, lvl: x.lvl, hp, max: hp, atk: Math.round(st.atk * atkM), shield: def.brand === 'torva' ? 1 : 0,
+      stun: false, boss: !!x.boss, label: x.label || def.name, r: 0, c: 0, acted: false, cd: 0, holo: !!x.holo };
   }
   const other = (s) => (s === 'A' ? 'B' : 'A');
-  // Enerji: her takımın ortak enerjisi var. Her turda +2 dolar (en fazla 10). Yetenekler enerji harcar.
-  const MAXE = 10;
-  const skillCost = (f) => Math.max(1, D.SKILLS[f.def.skill].cost - (f.def.brand === 'hayate' ? 1 : 0));
-  const canSkill = (s) => B[s].energy >= skillCost(cur(s));
-  const cur = (s) => B[s].list[B[s].idx];
+  const units = () => B.A.list.concat(B.B.list);
   const alive = (s) => B[s].list.filter(f => f.hp > 0);
+  const at = (r, c) => units().find(f => f.hp > 0 && f.r === r && f.c === c);
   const isHuman = (s) => (s === 'A' ? !B.auto : B.mode === 'pvp');
-  const pace = (ms) => wait(ms * (B && B.fast ? 0.5 : 0.8));
+  const pace = (ms) => wait(ms * (B && B.fast ? 0.45 : 0.8));
   const powerOn = () => G.S.settings.power !== false;
+  const rng = () => Math.random();
+
+  function place(list, row) {
+    const order = list.length === 1 ? [1] : list.length === 2 ? [0, 2] : [1, 0, 2];
+    list.forEach((f, i) => { f.r = row; f.c = order[i]; });
+  }
 
   G.battle = function (cfg) {
     // Deneme maçları bittiyse önce RA ID ile giriş
     if (cfg.mode !== 'pvp' && G.auth && G.auth.needsLogin()) { G.auth.openLogin('trial', () => G.battle(cfg)); return; }
     B = {
-      mode: cfg.mode, cfg, auto: false, fast: false, over: false, resolve: null, turnSide: 'A',
-      A: { list: cfg.teamA.map(mkF), idx: 0, name: cfg.nameA || G.S.name },
-      B: { list: cfg.teamB.map(mkF), idx: 0, name: cfg.nameB || 'Rakip' },
-      skillsUsed: 0, crowns: 0, combo: { A: 0, B: 0 }, perfects: { A: 0, B: 0 }, maxCombo: 0,
+      mode: cfg.mode, cfg, auto: false, fast: false, over: false, resolve: null, turnSide: 'A', round: 0,
+      A: { list: cfg.teamA.map(x => mkF(x, 'A')), name: cfg.nameA || G.S.name, ap: 0, rot: false },
+      B: { list: cfg.teamB.map(x => mkF(x, 'B')), name: cfg.nameB || 'Rakip', ap: 0, rot: false },
+      crowns: 0, combo: { A: 0, B: 0 }, perfects: { A: 0, B: 0 }, maxCombo: 0, sel: null, aim: null, frames: [],
     };
+    // Oyuncunun parlak (holo) küpleri tahtada da parlar
+    if (cfg.mode !== 'pvp') B.A.list.forEach(f => { f.holo = !!(G.S.holo && G.S.holo[f.def.id]); });
+    place(B.A.list, 3); place(B.B.list, 0);
+    // Güç kareleri: üstünde duran küp %30 fazla vurur
+    const pc = [0, 1, 2].sort(() => rng() - 0.5);
+    B.power = [{ r: 1, c: pc[0] }, { r: 2, c: pc[1] }];
+    // Arena modu: can çarpanı
+    const hpM = cfg.mod && cfg.mod.hp;
+    if (hpM) units().forEach(f => { f.max = f.hp = Math.round(f.max * hpM); });
+    // Atölye: Laboratuvar oyuncunun küplerini güçlendirir
+    const lab = G.baseBonus ? G.baseBonus('lab') : 0;
+    if (lab && cfg.mode !== 'pvp') B.A.list.forEach(f => { f.max = f.hp = Math.round(f.max * (1 + lab)); f.atk = Math.round(f.atk * (1 + lab)); });
+    // Takım uyumu
+    ['A', 'B'].forEach(s => {
+      const syn = G.synergy(B[s].list.map(f => f.def));
+      B[s].syn = syn;
+      syn.forEach(x => B[s].list.forEach(f => {
+        if (x.atk) f.atk = Math.round(f.atk * (1 + x.atk));
+        if (x.hp) { f.max = f.hp = Math.round(f.max * (1 + x.hp)); }
+      }));
+    });
+    // İlk savaş: rehberli. Rakip daha dayanıklı ama daha zayıf vurur
+    B.guided = cfg.mode === 'stage' && !(G.S.tut && G.S.tut.board);
+    if (B.guided) B.B.list.forEach(f => { f.max = f.hp = Math.round(f.max * 1.6); f.atk = Math.max(1, Math.round(f.atk * 0.55)); });
+    if (cfg.mode !== 'pvp' && G.event().id === 'pyramid') B.A.list.forEach(f => { if (f.def.type === 'pyramid') f.atk = Math.round(f.atk * 1.25); });
     $('b-title').textContent = cfg.title || 'Savaş';
     $('battle').style.setProperty('--bbg', cfg.bg || 'linear-gradient(180deg, #2a7bff, #5fd0ff)');
     $('b-auto').hidden = cfg.mode === 'pvp';
     $('b-auto').textContent = 'Oto: Kapalı';
     $('b-quit').textContent = cfg.mode === 'pvp' ? 'Bitir' : 'Pes et';
-    B.A.energy = 2; B.B.energy = 2;
-    // Arena modu: can çarpanı
-    const hpM = cfg.mod && cfg.mod.hp;
-    if (hpM) ['A', 'B'].forEach(k => B[k].list.forEach(f => { f.max = f.hp = Math.round(f.max * hpM); }));
-    // Atölye: Laboratuvar oyuncunun küplerini güçlendirir
-    const lab = G.baseBonus ? G.baseBonus('lab') : 0;
-    if (lab && cfg.mode !== 'pvp') B.A.list.forEach(f => { f.max = f.hp = Math.round(f.max * (1 + lab)); f.atk = Math.round(f.atk * (1 + lab)); });
-    // İlk savaş: Küpi ilk 3 turu adım adım gösterir
-    B.guided = cfg.mode === 'stage' && !(G.S.tut && G.S.tut.guided); B.gTurn = 0;
-    // Rehberli savaş 3 tur sürsün diye rakip daha dayanıklı ama daha zayıf vurur
-    if (B.guided) B.B.list.forEach(f => { f.max = f.hp = Math.round(f.max * 2.4); f.atk = Math.max(1, Math.round(f.atk * 0.6)); });
-    if (cfg.mode !== 'pvp' && G.event().id === 'pyramid') B.A.list.forEach(f => { if (f.def.type === 'pyramid') f.atk = Math.round(f.atk * 1.25); });
     $('battle').hidden = false;
     $('power').hidden = true; $('defend').hidden = true; $('b-acts').hidden = false; $('emote-pop').hidden = true;
-    B.drawn = {};
+    buildBoard();
     renderAll();
-    say(`<b>${esc(B.B.name)}</b> ile savaş başladı!`);
-    run();
+    const synTxt = (B.A.syn || []).map(x => `<b>${esc(x.name)}</b>`).join(' · ');
+    say(`<b>${esc(B.B.name)}</b> ile savaş başladı!${synTxt ? ' Takım uyumu: ' + synTxt : ''}`);
+    snap('start');
+    if (B.guided || !(G.S.tut && G.S.tut.boardIntro)) howTo(() => run()); else run();
   };
   G.inBattle = () => !!B;
 
+  function howTo(next) {
+    G.S.tut = Object.assign(G.S.tut || {}, { boardIntro: true }); G.save();
+    G.modal('Küp Tahtası', `
+      <ul class="howto">
+        <li><b>Her tur 3 hamle puanın var.</b> Küpüne dokun, sonra ne yapacağını seç.</li>
+        <li><span class="ht-g"></span><b>Yürü</b> (1 puan): yeşil karelere.</li>
+        <li><span class="ht-r"></span><b>Saldır</b> (2 puan): kırmızı çerçeveli rakibe. Her küp turda bir kez saldırır.</li>
+        <li><span class="ht-a">⟲</span><b>Döndür</b> (1 puan, turda bir kez): sıranın yanındaki oka dokun, o sıradaki herkes kayar. Rakibi menzile çek!</li>
+        <li><span class="ht-p">⚡</span><b>Güç karesi:</b> üstünde duran küp %30 fazla vurur.</li>
+        <li><b>Menzil:</b> Küp yanına, Piramit düz 2 kareye, Özel çevresindeki 8 kareye vurur.</li>
+      </ul>`, [{ label: 'Başla!', cls: 'btn-yellow', onClick: next }], { replace: true });
+  }
+
   async function run() {
     let side = 'A';
-    await pace(600);
+    await pace(500);
     while (B && !B.over) {
       await takeTurn(side);
       if (!B || B.over) break;
       side = other(side);
     }
   }
+
   async function takeTurn(side) {
-    const f = cur(side);
-    B[side].energy = Math.min(MAXE, (B[side].energy || 0) + ((B.cfg.mod && B.cfg.mod.energy) || 2));
-    B.turnSide = side;
+    const T = B[side];
+    if (side === 'A') {
+      B.round++;
+      // Uzayan savaş: 12. turdan sonra arena daralır
+      if (B.round >= 12) {
+        say('<b>Arena daralıyor!</b> Tüm küpler can kaybediyor.');
+        units().filter(f => f.hp > 0).forEach(f => { const d = Math.max(1, Math.round(f.max * 0.08)); f.hp = Math.max(0, f.hp - d); floatNum(f, '-' + d); });
+        renderAll(); await pace(700);
+        for (const s of ['A', 'B']) if (!alive(s).length) return end(s === 'B');
+        if (await checkKO()) return;
+      }
+    }
+    T.ap = AP + ((B.cfg.mod && B.cfg.mod.energy) ? 1 : 0) + (B.round === 1 && side === 'A' || B.round === 1 && side === 'B' ? (T.syn || []).reduce((a, x) => a + (x.ap || 0), 0) : 0);
+    T.rot = false;
+    T.list.forEach(f => { f.acted = false; if (f.cd > 0) f.cd--; });
+    B.turnSide = side; B.sel = null; B.aim = null;
     renderAll();
-    if (f.stun) {
-      f.stun = false;
-      say(`<b>${esc(f.label)}</b> sersem, turu kaçırdı`);
-      renderAll();
-      await pace(900);
+    if (isHuman(side)) {
+      if (B.mode === 'pvp') { Snd.turn(); say(`Sıra: <b>${esc(T.name)}</b>`); }
+      if (B.guided && side === 'A') guide();
+      await new Promise(res => { B.endTurn = res; renderAll(); });
+      B.endTurn = null;
+    } else {
+      await pace(side === 'A' ? 300 : 500);
+      await aiTurn(side);
+    }
+    // sersemlik, sersemleyen takımın beklediği tur bitince geçer
+    T.list.forEach(f => { f.stun = false; });
+    B && (B.sel = null);
+  }
+
+  // ---------- Seçenekler ----------
+  const stepDirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  const canAct = (f) => f.hp > 0 && !f.stun;
+  function moveCells(f) {
+    if (!canAct(f) || B[f.side].ap < 1) return [];
+    return stepDirs.map(([dr, dc]) => ({ r: f.r + dr, c: f.c + dc })).filter(p => p.r >= 0 && p.r < ROWS && p.c >= 0 && p.c < COLS && !at(p.r, p.c));
+  }
+  function targets(f) {
+    if (!canAct(f) || f.acted) return [];
+    return alive(other(f.side)).filter(d => inRange(f, d));
+  }
+  const canAttack = (f) => B[f.side].ap >= 2 && targets(f).length > 0;
+  const skillReady = (f) => canAct(f) && !f.acted && f.cd === 0 && B[f.side].ap >= skillAP(f);
+  const onPower = (f) => B.power.some(p => p.r === f.r && p.c === f.c);
+
+  // ---------- İnsan girişi ----------
+  function tapCell(r, c) {
+    if (!B || B.over || B.busy || !isHuman(B.turnSide) || !B.endTurn) return;
+    const side = B.turnSide, u = at(r, c), sel = B.sel;
+    if (B.aim) {
+      // yetenek hedefi seçiliyor
+      if (u && u.side !== side && inRange(sel, u)) { const s = sel; B.aim = null; act(() => doSkill(s, u)); }
+      else { B.aim = null; renderAll(); }
       return;
     }
-    let act;
-    if (isHuman(side)) {
-      if (B.mode === 'pvp') Snd.turn();
-      else if (side === 'A' && !B.guided) {
-        G.tip('atk', '#act-atk', 'Sıra sende! Saldır’a bas.');
-        if (canSkill('A') && B.turns > 1) G.tip('skill', '#act-skill', 'Enerjin yetiyor! Yetenekler enerji harcar, doğru anı seç.');
+    if (u && u.side === side) {
+      if (!canAct(u)) { say(`<b>${esc(u.label)}</b> sersem, bu tur bekliyor`); return; }
+      B.sel = sel === u ? null : u; Snd.click(); renderAll(); return;
+    }
+    if (!sel) { if (u) showInfo(u); return; }
+    if (u && u.side !== side) {
+      if (sel.acted) return say('Bu küp bu tur zaten saldırdı');
+      if (!inRange(sel, u)) return say(`Menzil dışında. ${ROLE[typeKey(sel)].name}: ${ROLE[typeKey(sel)].range}`);
+      if (B[side].ap < 2) return say('Saldırı için 2 hamle puanı gerekir');
+      return act(() => doAttack(sel, u));
+    }
+    if (!u && moveCells(sel).some(p => p.r === r && p.c === c)) return act(() => doMove(sel, r, c));
+  }
+  function tapRotate(r, d) {
+    if (!B || B.over || B.busy || !isHuman(B.turnSide) || !B.endTurn) return;
+    const T = B[B.turnSide];
+    if (T.rot) return say('Turda yalnız bir kez döndürebilirsin');
+    if (T.ap < 1) return say('Döndürmek için 1 hamle puanı gerekir');
+    act(() => doRotate(B.turnSide, r, d));
+  }
+  async function act(fn) {
+    B.busy = true; renderAll();
+    await fn();
+    if (!B) return;
+    B.busy = false;
+    if (B.over) return;
+    if (await checkKO()) return;
+    const side = B.turnSide;
+    if (B.sel && B.sel.hp <= 0) B.sel = null;
+    renderAll();
+    // yapılacak bir şey kalmadıysa tur kendiliğinden biter
+    const T = B[side];
+    const any = T.ap > 0 && alive(side).some(f => canAct(f) && (moveCells(f).length || canAttack(f) || skillReady(f))) || (T.ap >= 1 && !T.rot && alive(side).some(f => !f.acted && canAct(f)));
+    if (!any && B.endTurn) { await pace(350); B.endTurn && B.endTurn(); }
+  }
+
+  // ---------- Hamleler ----------
+  async function doMove(f, r, c) {
+    B[f.side].ap -= 1;
+    f.r = r; f.c = c;
+    Snd.click(); renderAll();
+    snap(`${f.label} yürüdü`);
+    await pace(260);
+  }
+  async function doRotate(side, r, d) {
+    B[side].ap -= 1; B[side].rot = true;
+    if (side === 'A' && B.mode !== 'pvp') G.bump('rotates');
+    units().filter(f => f.hp > 0 && f.r === r).forEach(f => { f.c = (f.c + d + COLS) % COLS; });
+    Snd.skill();
+    const row = $('bd').querySelector(`.b-rowfx[data-r="${r}"]`);
+    if (row) { row.classList.remove('go'); void row.offsetWidth; row.classList.add('go'); }
+    say(`<b>${esc(B[side].name)}</b> ${r + 1}. sırayı ${d > 0 ? 'sağa' : 'sola'} döndürdü!`);
+    renderAll();
+    snap('döndürme');
+    await pace(420);
+  }
+  async function strike(a, d, k, label) {
+    const human = isHuman(a.side), vsHuman = isHuman(d.side) && B.mode !== 'pvp';
+    let pm = 1;
+    if (human && powerOn() && !B.auto) { const p = await powerBar(a.side); pm = p.m; }
+    else if (!human && vsHuman && !B.auto && powerOn()) pm = await defendQTE();
+    if (!B || B.over) return 0;
+    let dmg = a.atk * (0.88 + rng() * 0.24) * k * pm;
+    const e = eff(a, d); dmg *= e;
+    if (onPower(a)) dmg *= 1.3;
+    const crit = rng() < (a.def.brand === 'zenko' ? 0.2 : 0.1) + ((B.cfg.mod && B.cfg.mod.crit) || 0);
+    if (crit) dmg *= a.def.brand === 'vexa' ? 2 : 1.5;
+    dmg = Math.max(1, Math.round(dmg));
+    if (d.shield > 0) { dmg = Math.max(1, Math.round(dmg / 2)); d.shield--; }
+    const big = pm >= 1.5 || crit;
+    anim(a, 'lunge'); await pace(150);
+    d.hp = Math.max(0, d.hp - dmg);
+    anim(d, 'hit'); floatNum(d, '-' + dmg, false, big);
+    window.FX.burstAt(tokEl(d), big ? null : '#ffcc1f', big ? 24 : 10, big ? 7 : 4);
+    if (big || dmg > d.max * 0.3) window.FX.shake($('battle'));
+    if (navigator.vibrate && big) { try { navigator.vibrate(40); } catch (er) {} }
+    Snd.hit();
+    const tags = [];
+    if (crit) tags.push('kritik!');
+    if (e > 1) tags.push('<b class="good">çok etkili</b>');
+    else if (e < 1) tags.push('<span class="weak">pek etkili değil</span>');
+    if (onPower(a)) tags.push('⚡ güç karesi');
+    if (pm >= 1.5 && human) tags.push('<b class="good">mükemmel</b>');
+    if (pm < 1 && vsHuman) tags.push('<b class="good">blokladın</b>');
+    say(`<b>${esc(a.label)}</b> ${label}: ${dmg} hasar${tags.length ? ' · ' + tags.join(' · ') : ''}`);
+    return dmg;
+  }
+  async function doAttack(a, d) {
+    B[a.side].ap -= 2; a.acted = true;
+    await strike(a, d, typeKey(a) === 'piramit' && Math.abs(d.r - a.r) + Math.abs(d.c - a.c) === 2 ? 0.85 : 1, 'saldırdı');
+    if (!B) return;
+    renderAll(); snap('saldırı');
+    await pace(420);
+  }
+  async function doSkill(a, d) {
+    const sk = D.SKILLS[a.def.skill];
+    B[a.side].ap -= skillAP(a); a.acted = true; a.cd = 2;
+    if (a.side === 'A' || B.mode === 'pvp') G.bump('skills');
+    Snd.skill();
+    const s = a.def.skill;
+    if (s === 'double') await strike(a, d, 2, sk.name);
+    else if (s === 'stun') { await strike(a, d, 0.6, sk.name); if (B && d.hp > 0) { d.stun = true; say(`<b>${esc(d.label)}</b> sersemledi, bir tur bekleyecek!`); } }
+    else if (s === 'drain') { const dealt = await strike(a, d, 1.2, sk.name); const v = Math.min(a.max - a.hp, Math.round(dealt / 2)); a.hp += v; if (v) floatNum(a, '+' + v, true); }
+    else if (s === 'heal') {
+      // kendisini ya da yanındaki en yaralı dostunu iyileştirir
+      const friends = alive(a.side).filter(f => f === a || Math.abs(f.r - a.r) + Math.abs(f.c - a.c) === 1);
+      const t = friends.sort((x, y) => x.hp / x.max - y.hp / y.max)[0];
+      const v = Math.min(t.max - t.hp, Math.round(t.max * 0.35));
+      t.hp += v; floatNum(t, '+' + v, true); Snd.heal();
+      window.FX.burstAt(tokEl(t), '#2fcf73', 14, 4);
+      say(`<b>${esc(a.label)}</b> ${sk.name}: <b>${esc(t.label)}</b> ${v} can yeniledi`);
+    } else if (s === 'shield') {
+      a.shield = 2;
+      window.FX.burstAt(tokEl(a), '#2e8cff', 14, 4);
+      say(`<b>${esc(a.label)}</b> ${sk.name} açtı: sonraki 2 saldırıda yarı hasar`);
+    }
+    if (!B) return;
+    renderAll(); snap('yetenek');
+    await pace(450);
+  }
+  function useSkill() {
+    const f = B && B.sel;
+    if (!f || B.busy || !B.endTurn || !skillReady(f)) return;
+    if (NEED_TARGET[f.def.skill]) {
+      if (!targets(f).length) return say('Menzilde rakip yok. Önce yaklaş!');
+      B.aim = true; say(`<b>${esc(D.SKILLS[f.def.skill].name)}</b>: hedef seç`); renderAll(); return;
+    }
+    act(() => doSkill(f, null));
+  }
+
+  async function checkKO() {
+    let any = false;
+    for (const f of units()) {
+      if (f.hp <= 0 && !f.dead) {
+        f.dead = true; any = true;
+        if (f.side === 'B' && B.mode !== 'pvp') { B.crowns++; if (rng() < 0.3) botEmote([3, 5]); }
+        if (f.side === 'A' && B.mode !== 'pvp' && rng() < 0.35) botEmote([0, 4]);
+        say(`<b>${esc(f.label)}</b> oyun dışı!`);
+        renderAll();
+        await pace(500);
+        if (!B) return true;
       }
-      B.turns = (B.turns || 0) + 1;
-      if (B.guided && side === 'A') guideTurn();
-      act = await new Promise(res => (B.resolve = res));
-      B.resolve = null;
-      if (B && !B.over && powerOn() && (act.kind === 'atk' || act.kind === 'skill') && isHuman(side)) act.power = await powerBar(side);
-    } else {
-      await pace(side === 'A' ? 350 : 550);
-      if (!B || B.over) return;
-      act = ai(side);
-      const hurts = act.kind === 'atk' || (act.kind === 'skill' && f.def.skill !== 'heal');
-      if (side === 'B' && hurts && B.mode !== 'pvp' && !B.auto && powerOn()) act.defend = await defendQTE();
     }
-    if (!B || B.over) return;
-    await perform(side, act);
+    if (any) {
+      if (!alive('B').length) { end(true); return true; }
+      if (!alive('A').length) { end(false); return true; }
+    }
+    return false;
   }
 
-  function ai(side) {
-    const me = cur(side), op = cur(other(side));
-    // Dezavantajdaysa avantajlı yedeğe geç
-    if (eff(op, me) > 1 && Math.random() < 0.35) {
-      const i = B[side].list.findIndex((x, k) => k !== B[side].idx && x.hp > x.max * 0.4 && eff(x, op) > 1);
-      if (i >= 0) return { kind: 'switch', idx: i };
+  // ---------- Yapay zekâ ----------
+  function bfs(f) {
+    // f'nin boş karelerden yürüyerek ulaşabileceği kareler ve adım sayısı
+    const seen = new Map([[f.r * 9 + f.c, 0]]), q = [[f.r, f.c, 0]], out = [{ r: f.r, c: f.c, d: 0 }];
+    while (q.length) {
+      const [r, c, d] = q.shift();
+      if (d >= 3) continue;
+      for (const [dr, dc] of stepDirs) {
+        const nr = r + dr, nc = c + dc, k = nr * 9 + nc;
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS || seen.has(k) || at(nr, nc)) continue;
+        seen.set(k, d + 1); q.push([nr, nc, d + 1]); out.push({ r: nr, c: nc, d: d + 1 });
+      }
     }
-    if (canSkill(side)) {
-      const s = me.def.skill;
-      if (s === 'heal') { if (me.hp < me.max * 0.55) return { kind: 'skill' }; }
-      else if (s === 'shield') { if (me.hp < me.max * 0.8 || Math.random() < 0.3) return { kind: 'skill' }; }
-      else if (s === 'stun') { if (!op.stun) return { kind: 'skill' }; }
-      else return { kind: 'skill' };
+    return out;
+  }
+  function stepsToAttack(f) {
+    let best = 9;
+    const foes = alive(other(f.side));
+    for (const p of bfs(f)) {
+      const g = { def: f.def, r: p.r, c: p.c };
+      if (foes.some(d => inRange(g, d))) best = Math.min(best, p.d);
     }
-    return { kind: 'atk' };
+    return best;
+  }
+  function attackScore(a, d, k) {
+    let v = a.atk * k * eff(a, d) * (onPower(a) ? 1.3 : 1);
+    if (d.shield) v /= 2;
+    if (v >= d.hp) v += 40; // bitirici vuruş
+    return v + (1 - d.hp / d.max) * 10;
+  }
+  async function aiTurn(side) {
+    const T = B[side];
+    for (let guard = 0; guard < 12 && B && !B.over && T.ap > 0; guard++) {
+      const mine = alive(side).filter(canAct);
+      let best = null;
+      for (const f of mine) {
+        if (f.acted) continue;
+        for (const d of targets(f)) {
+          if (T.ap >= 2) { const s = attackScore(f, d, 1); if (!best || s > best.s) best = { s, kind: 'atk', f, d }; }
+          if (skillReady(f) && NEED_TARGET[f.def.skill]) {
+            const k = f.def.skill === 'double' ? 2 : f.def.skill === 'drain' ? 1.35 : 0.9;
+            const s = attackScore(f, d, k) - skillAP(f) * 3;
+            if (!best || s > best.s) best = { s, kind: 'skill', f, d };
+          }
+        }
+        if (skillReady(f) && f.def.skill === 'heal') {
+          const hurt = alive(side).filter(x => (x === f || Math.abs(x.r - f.r) + Math.abs(x.c - f.c) === 1) && x.hp < x.max * 0.55);
+          if (hurt.length) { const s = 45; if (!best || s > best.s) best = { s, kind: 'skill', f, d: null }; }
+        }
+        if (skillReady(f) && f.def.skill === 'shield' && f.hp < f.max * 0.7 && !f.shield && T.ap === skillAP(f)) {
+          const s = 12; if (!best || s > best.s) best = { s, kind: 'skill', f, d: null };
+        }
+      }
+      if (best) {
+        if (best.kind === 'atk') await doAttack(best.f, best.d); else await doSkill(best.f, best.d);
+        if (await checkKO()) return;
+        renderAll(); await pace(250);
+        continue;
+      }
+      // Yürü: saldırıya en çok yaklaştıran adım (güç karesini sever)
+      let mv = null;
+      for (const f of mine) {
+        if (f.acted && T.ap < 3) continue;
+        const now = stepsToAttack(f);
+        for (const p of moveCells(f)) {
+          const or = f.r, oc = f.c; f.r = p.r; f.c = p.c;
+          const after = stepsToAttack(f);
+          const pw = onPower(f) ? 0.6 : 0;
+          f.r = or; f.c = oc;
+          const gain = now - after + pw + (f.acted ? -0.5 : 0);
+          if (gain > 0 && (!mv || gain > mv.g)) mv = { g: gain, f, p };
+        }
+      }
+      if (mv) { await doMove(mv.f, mv.p.r, mv.p.c); renderAll(); await pace(200); continue; }
+      // Döndür: bir sırayı kaydırmak saldırı fırsatı açıyorsa
+      if (!T.rot && T.ap >= 3 && mine.some(f => !f.acted)) {
+        let rb = null;
+        for (let r = 0; r < ROWS; r++) for (const d of [1, -1]) {
+          const moved = units().filter(f => f.hp > 0 && f.r === r);
+          if (!moved.length) continue;
+          moved.forEach(f => { f.c = (f.c + d + COLS) % COLS; });
+          const ok = mine.filter(f => !f.acted && targets(f).length).length;
+          moved.forEach(f => { f.c = (f.c - d + COLS) % COLS; });
+          if (ok && (!rb || ok > rb.ok)) rb = { ok, r, d };
+        }
+        if (rb) { await doRotate(side, rb.r, rb.d); continue; }
+      }
+      break;
+    }
   }
 
-  // Rehberli ilk savaş: 1. tur saldırı, 2. tur enerji + yetenek, 3. tur küp değiştirme
-  async function guideTurn() {
-    const t = B.gTurn++;
-    await G.wait(250);
-    if (!B || B.over || !B.resolve) return;
-    if (t === 0) {
-      await G.guide('#act-atk', 'Saldır!', 'Sıra sende. Saldır düğmesine dokun.');
-    } else if (t === 1) {
-      await G.guide('#energy', 'Enerji', 'Bu mor çubuk enerjin. Her turda 2 dolar. Yetenekler enerji harcar, düğmenin köşesinde kaç enerji istediği yazar.', true);
-      if (!B || !B.resolve) return;
-      if (canSkill('A')) await G.guide('#act-skill', 'Yetenek', `Enerjin yetiyor! “${D.SKILLS[cur('A').def.skill].name}” yeteneğini kullan.`);
-      else await G.guide('#act-atk', 'Saldır!', 'Enerjin henüz yetmiyor. Bu tur saldır, enerji biriksin.');
-    } else if (t === 2) {
-      const bench = document.querySelector('#b-A .bench-btn:not(.on):not(.ko):not(:disabled)');
-      if (bench) await G.guide('#b-A .bench-btn:not(.on):not(.ko):not(:disabled)', 'Küp değiştir', 'Yedek küplerine dokunarak sahadaki küpü değiştirebilirsin. Rakibe karşı avantajlı türü seç! Şimdi dene.');
-      else await G.guide('#act-atk', 'Saldır!', 'Bir saldırı daha!');
+  // ---------- Rehber (ilk savaş) ----------
+  async function guide() {
+    await G.wait(300);
+    if (!B || !B.guided || !B.endTurn) return;
+    const n = B.gStep = (B.gStep || 0) + 1;
+    if (n === 1) {
+      await G.guide('#bd .tok.A.can', 'Küpünü seç', 'Küplerinden birine dokun. Yeşil kareler gidebileceğin yerler.');
+      if (!B) return;
+      G.coach('#bd', 'Yeşil kareye dokunarak yürü (1 puan). Rakip menzile girince kırmızı çerçeveli olur: dokun ve saldır (2 puan)!', 5200);
+    } else if (n === 2) {
+      G.coach('#b-hp', 'Her turda 3 hamle puanın var. Puanın bitince tur kendiliğinden biter.', 4200);
+    } else if (n === 3) {
+      G.coach('#bd .b-arrow', 'Sıranın yanındaki oklar o sırayı döndürür: rakipler de kayar! Menzile çekmek için kullan (1 puan, turda bir kez).', 5200);
       endGuide();
     }
   }
   function endGuide() {
     if (!B || !B.guided) return;
     B.guided = false;
-    G.S.tut = Object.assign(G.S.tut || {}, { guided: true, atk: true, power: true, defend: true, skill: true });
+    G.S.tut = Object.assign(G.S.tut || {}, { guided: true, board: true, atk: true, power: true, defend: true, skill: true });
     G.save();
-    setTimeout(() => G.coach('#b-acts', 'Harika! Artık gerisi sende. Kazanmaya bak!', 3500), 900);
   }
 
-  // Güç çubuğu: ibre gidip gelir, doğru anda dokunan daha çok vurur.
+  // ---------- Güç çubuğu ve savunma ----------
   function powerBar(side) {
     return new Promise(res => {
       const el = $('power'), needle = el.querySelector('.power-needle');
@@ -162,7 +468,7 @@
       $('power-combo').textContent = combo > 1 ? `Kombo ×${combo}` : '';
       el.querySelectorAll('.power-result').forEach(x => x.remove());
       let period = Math.max(600, 1100 - combo * 70);
-      if (B.guided && !B.gPower) { B.gPower = true; period = 1800; G.guide('#power', 'Güç çubuğu', 'İbre YEŞİLİN ORTASINA gelince bu kutuya dokun: MÜKEMMEL vuruş, 1,5 kat hasar!'); }
+      if (B.guided && !B.gPower) { B.gPower = true; period = 1700; G.coach('#power', 'İbre YEŞİLİN ORTASINA gelince dokun: MÜKEMMEL vuruş, 1,5 kat hasar!', 3500); }
       const t0 = performance.now();
       let raf, done = false, p = 0;
       const step = (now) => {
@@ -177,7 +483,6 @@
         if (done) return; done = true;
         cancelAnimationFrame(raf);
         el.onpointerdown = null; window.removeEventListener('keydown', key);
-        G.guideHide();
         const dist = Math.abs(p - 0.5);
         let m, txt;
         if (dist < 0.05) { m = 1.5; txt = 'MÜKEMMEL!'; }
@@ -188,19 +493,16 @@
           if (m >= 1.5) { B.combo[side]++; B.perfects[side]++; B.maxCombo = Math.max(B.maxCombo, B.combo[side]); }
           else if (m < 1) B.combo[side] = 0;
         }
-        const r = h('div', 'power-result', txt);
-        el.appendChild(r);
+        el.appendChild(h('div', 'power-result', txt));
         if (m >= 1.5) { Snd.star(2); window.FX.burstAt(needle, '#2fcf73', 14, 5); }
         else if (m < 1) Snd.lose();
-        setTimeout(() => { el.hidden = true; $('b-acts').hidden = false; res({ m, txt }); }, 420);
+        setTimeout(() => { el.hidden = true; $('b-acts').hidden = false; res({ m, txt }); }, 380);
       };
       const key = (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); finish(); } };
       el.onpointerdown = (e) => { e.preventDefault(); finish(); };
       window.addEventListener('keydown', key);
     });
   }
-
-  // Savunma: halka küçülür, mavi kalkana değdiği an dokunursan hasar yarıya iner.
   function defendQTE() {
     return new Promise(res => {
       const el = $('defend'), btn = $('def-btn'), ring = $('def-ring');
@@ -208,17 +510,16 @@
       el.querySelectorAll('.def-result').forEach(x => x.remove());
       if (!B.guided) G.tip('defend', '#defend', 'Halka mavi kalkana değdiği AN dokun: hasar yarıya iner!', 4500);
       let T = 750 + Math.random() * 550;
-      if (B.guided && !B.gDef) { B.gDef = true; T = 1900; G.guide('#defend', 'Savun!', 'Rakip saldırıyor! Beyaz halka küçülüp mavi düğmeye değdiği AN düğmeye bas: hasar yarıya iner.'); }
+      if (B.guided && !B.gDef) { B.gDef = true; T = 1800; G.coach('#defend', 'Rakip saldırıyor! Halka mavi düğmeye değdiği AN bas: hasar yarıya iner.', 3500); }
       const t0 = performance.now();
-      const anim = ring.animate([{ transform: 'scale(2.1)', opacity: 0.35 }, { transform: 'scale(1)', opacity: 1, offset: T / (T + 260) }, { transform: 'scale(0.8)', opacity: 0 }], { duration: T + 260, fill: 'forwards' });
+      const an = ring.animate([{ transform: 'scale(2.1)', opacity: 0.35 }, { transform: 'scale(1)', opacity: 1, offset: T / (T + 260) }, { transform: 'scale(0.8)', opacity: 0 }], { duration: T + 260, fill: 'forwards' });
       let done = false;
       const finish = (m, txt) => {
         if (done) return; done = true;
-        anim.cancel(); btn.onpointerdown = null; window.removeEventListener('keydown', key);
-        G.guideHide();
+        an.cancel(); btn.onpointerdown = null; window.removeEventListener('keydown', key);
         el.querySelector('.def-wrap').appendChild(h('div', 'def-result', txt));
         if (m < 1) { Snd.star(1); window.FX.burstAt(btn, '#2e8cff', 18, 5); }
-        setTimeout(() => { el.hidden = true; $('b-acts').hidden = false; res(m); }, 380);
+        setTimeout(() => { el.hidden = true; $('b-acts').hidden = false; res(m); }, 360);
       };
       const tap = () => { const dt = performance.now() - t0 - T; if (Math.abs(dt) <= 170) finish(0.5, 'BLOK!'); else finish(1, dt < 0 ? 'Erken!' : 'Geç!'); };
       const key = (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); tap(); } };
@@ -228,88 +529,18 @@
     });
   }
 
-  function rollDmg(a, d, k) {
-    let dmg = a.atk * rand(0.85, 1.15) * k;
-    const e = eff(a, d);
-    dmg *= e;
-    const crit = Math.random() < (a.def.brand === 'zenko' ? 0.2 : 0.1) + ((B.cfg.mod && B.cfg.mod.crit) || 0);
-    if (crit) dmg *= a.def.brand === 'vexa' ? 2 : 1.5;
-    return { dmg: Math.max(1, Math.round(dmg)), crit, e };
-  }
-  function hit(dSide, dmg, big) {
-    const d = cur(dSide);
-    if (d.shield > 0) { dmg = Math.max(1, Math.round(dmg / 2)); d.shield--; }
-    d.hp = Math.max(0, d.hp - dmg);
-    anim(dSide, 'hit'); floatNum(dSide, '-' + dmg, false, big);
-    const fel = $('b-' + dSide).querySelector('.fighter canvas');
-    window.FX.burstAt(fel, big ? null : '#ffcc1f', big ? 26 : 10, big ? 8 : 5);
-    if (big || dmg > d.max * 0.3) window.FX.shake($('battle'));
-    if (navigator.vibrate && big) { try { navigator.vibrate(40); } catch (e) {} }
-    Snd.hit();
-    return dmg;
-  }
-  const effText = (e) => (e > 1 ? ' <b class="good">Çok etkili!</b>' : e < 1 ? ' <span class="weak">Pek etkili değil.</span>' : '');
-
-  async function perform(side, act) {
-    const dSide = other(side);
-    if (act.kind === 'switch') {
-      const prev = cur(side);
-      B[side].idx = act.idx;
-      say(`<b>${esc(prev.label)}</b> geri çekildi, <b>${esc(cur(side).label)}</b> sahada!`);
-      Snd.click();
-      renderAll();
-      await pace(800);
-      return;
-    }
-    if (act.kind === 'quit') return;
-    const a = cur(side), d = cur(dSide);
-    const who = `<b>${esc(a.label)}</b>`;
-    const pm = act.defend !== undefined ? act.defend : act.power ? act.power.m : 1, big = pm >= 1.5;
-    const ptxt = act.defend !== undefined ? (act.defend < 1 ? ' <b class="good">Blokladın!</b>' : '') : act.power ? (big ? ' <b class="good">Mükemmel vuruş!</b>' : pm < 1 ? ' Iska gibi…' : '') : '';
-    anim(side, 'lunge');
-    await pace(180);
-    if (!B || B.over) return;
-    if (act.kind === 'atk') {
-      const r = rollDmg(a, d, pm);
-      const dealt = hit(dSide, r.dmg, big || r.crit);
-      say(`${who} saldırdı: ${dealt} hasar${r.crit ? ' (kritik!)' : ''}.${effText(r.e)}${ptxt}`);
-    } else {
-      const sk = D.SKILLS[a.def.skill];
-      B[side].energy -= skillCost(a);
-      if (side === 'A' || B.mode === 'pvp') { G.bump('skills'); }
-      Snd.skill();
-      if (a.def.skill === 'double') { const r = rollDmg(a, d, 2 * pm); const dealt = hit(dSide, r.dmg, big); say(`${who} ${sk.name}: ${dealt} hasar!${effText(r.e)}`); }
-      else if (a.def.skill === 'heal') { const v = Math.min(a.max - a.hp, Math.round(a.max * 0.35 * pm)); a.hp += v; window.FX.burstAt($('b-' + side).querySelector('.fighter canvas'), '#2fcf73', 14, 4); floatNum(side, '+' + v, true); Snd.heal(); say(`${who} ${sk.name} ile ${v} can yeniledi`); }
-      else if (a.def.skill === 'stun') { const r = rollDmg(a, d, 0.6 * pm); const dealt = hit(dSide, r.dmg, big); d.stun = true; say(`${who} ${sk.name}: ${dealt} hasar, rakip sersemledi!${effText(r.e)}`); }
-      else if (a.def.skill === 'shield') { a.shield = 2; const r = rollDmg(a, d, 0.5 * pm); const dealt = hit(dSide, r.dmg, big); say(`${who} ${sk.name} açtı ve ${dealt} hasar verdi.`); }
-      else if (a.def.skill === 'drain') { const r = rollDmg(a, d, 1.2 * pm); const dealt = hit(dSide, r.dmg, big); const v = Math.min(a.max - a.hp, Math.round(dealt / 2)); a.hp += v; if (v) floatNum(side, '+' + v, true); say(`${who} ${sk.name}: ${dealt} hasar, ${v} can aldı.${effText(r.e)}`); }
-    }
-    renderAll();
-    await pace(650);
-    if (!B || B.over) return;
-    if (d.hp <= 0) await knockOut(dSide);
-  }
-
-  async function knockOut(side) {
-    const f = cur(side);
-    say(`<b>${esc(f.label)}</b> oyun dışı!`);
-    await pace(700);
-    if (!B || B.over) return;
-    if (side === 'B' && B.mode !== 'pvp') { B.crowns++; if (Math.random() < 0.3) botEmote([3, 5]); }
-    if (side === 'A' && B.mode !== 'pvp' && Math.random() < 0.35) botEmote([0, 4]);
-    const next = B[side].list.findIndex(x => x.hp > 0);
-    if (next < 0) return end(side === 'B');
-    B[side].idx = next;
-    renderAll();
-    if (!B) return;
-    say(`<b>${esc(B[side].name)}</b> sahaya <b>${esc(cur(side).label)}</b> çıkardı`);
-    await pace(600);
-  }
-
+  // ---------- Bitiş ----------
   function end(wonA) {
+    if (!B || B.over) return;
     if (B.guided) { G.guideHide(); endGuide(); }
     B.over = true;
-    const res = { won: wonA, koA: B.A.list.filter(f => f.hp <= 0).length, sizeA: B.A.list.length, perfects: B.perfects.A, maxCombo: B.maxCombo, crowns: B.crowns };
+    const res = { won: wonA, koA: B.A.list.filter(f => f.hp <= 0).length, sizeA: B.A.list.length, perfects: B.perfects.A, maxCombo: B.maxCombo, crowns: B.crowns, rounds: B.round };
+    snap(wonA ? 'kazandı' : 'kaybetti');
+    if (G.saveReplay && B.mode !== 'pvp') G.saveReplay({
+      title: B.cfg.title || 'Savaş', nameA: B.A.name, nameB: B.B.name, won: wonA, ts: Date.now(), power: B.power,
+      units: units().map(f => ({ u: f.uid, s: f.side, id: f.def.id, l: f.lvl, n: f.label, m: f.max, b: f.boss ? 1 : 0 })),
+      frames: B.frames, rounds: B.round,
+    });
     if (wonA || B.mode === 'pvp') setTimeout(() => window.FX.confetti(), 350);
     const cb = B.cfg.onEnd;
     setTimeout(() => {
@@ -317,95 +548,131 @@
       B = null;
       (wonA ? Snd.win : Snd.lose)();
       cb && cb(res);
-    }, 300);
+    }, 600);
+  }
+
+  // Tekrar izleme için her hamleden sonra tahtanın kısa bir kopyası
+  function snap(tag) {
+    if (!B || B.frames.length > 160) return;
+    B.frames.push({ t: $('blog').textContent.slice(0, 90) || tag, s: B.turnSide, u: units().map(f => [f.uid, f.r, f.c, f.hp]) });
   }
 
   // ---------- Görünüm ----------
   function say(html) { $('blog').innerHTML = `<span>${html}</span>`; }
-  function anim(side, cls) {
-    const el = $('b-' + side).querySelector('.fighter');
+  const tokEl = (f) => $('bd').querySelector(`.tok[data-u="${f.uid}"]`);
+  function anim(f, cls) {
+    const el = tokEl(f);
     if (!el) return;
     el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
     setTimeout(() => el.classList.remove(cls), 400);
   }
-  function floatNum(side, txt, heal, big) {
-    const el = $('b-' + side).querySelector('.fighter');
+  function floatNum(f, txt, heal, big) {
+    const el = tokEl(f);
     if (!el) return;
-    const f = h('span', 'float' + (heal ? ' heal' : '') + (big ? ' big' : ''), txt);
-    el.appendChild(f); setTimeout(() => f.remove(), 900);
+    const x = h('span', 'float' + (heal ? ' heal' : '') + (big ? ' big' : ''), txt);
+    el.appendChild(x); setTimeout(() => x.remove(), 900);
+  }
+  function showInfo(f) {
+    const ty = D.TYPES[typeKey(f)], ro = ROLE[typeKey(f)], sk = D.SKILLS[f.def.skill];
+    say(`<b>${esc(f.label)}</b> · ${ty.name} ${ro.name} (${ro.range}) · ${f.hp}/${f.max} can · Saldırı ${f.atk} · ${esc(sk.name)}`);
   }
 
-  function renderSide(side) {
-    const wrap = $('b-' + side), S = B[side], f = cur(side), op = cur(other(side));
-    const key = S.idx + ':' + f.def.id;
-    if (B.drawn[side] !== key) {
-      B.drawn[side] = key;
-      wrap.innerHTML = `<div class="fighter"><canvas></canvas><div class="info"><div class="nm"></div><div class="meta"></div><div class="hp"><i></i></div><div class="hp-txt"></div></div></div><div class="bench"></div>`;
-      R.drawPuzzle(wrap.querySelector('canvas'), f.def);
-      const bench = wrap.querySelector('.bench');
-      bench.appendChild(h('span', 'b-owner', esc(S.name)));
-      S.list.forEach((x, i) => {
-        const b = h('button', 'bench-btn', '<canvas></canvas><i></i>');
-        b.setAttribute('aria-label', x.label + ' ile değiştir');
-        b.onclick = () => {
-          if (!B || B.turnSide !== side || !B.resolve || !isHuman(side)) return;
-          if (i === S.idx || x.hp <= 0) return;
-          B.resolve({ kind: 'switch', idx: i });
-        };
-        bench.appendChild(b);
-        requestAnimationFrame(() => R.drawPuzzle(b.querySelector('canvas'), x.def));
-      });
-    }
-    const fighter = wrap.querySelector('.fighter');
-    fighter.classList.toggle('active-turn', B.turnSide === side && !B.over);
-    fighter.classList.toggle('boss', f.boss);
-    wrap.querySelector('.nm').textContent = f.label;
-    const ty = D.TYPES[G.typeOf(f.def)];
-    const e = eff(f, op);
-    const chips = [G.brandChip(f.def), `<span>Sv ${f.lvl}</span>`, `<span class="fx" style="background:${ty.color}">${ty.name}</span>`];
-    if (f.boss) chips.push('<span class="fx boss-chip">BOSS</span>');
-    if (e > 1) chips.push('<span class="fx good">Avantajlı</span>');
-    if (f.shield) chips.push(`<span class="fx">Kalkan ×${f.shield}</span>`);
-    if (f.stun) chips.push('<span class="fx">Sersem</span>');
-    if (side === 'B') chips.push(`<span class="fx energy-chip">⚡ ${B.B.energy}</span>`);
-    wrap.querySelector('.meta').innerHTML = chips.join('');
-    const pct = Math.max(0, f.hp / f.max * 100);
-    const bar = wrap.querySelector('.hp i'); bar.style.width = pct + '%'; bar.classList.toggle('low', pct < 30);
-    wrap.querySelector('.hp-txt').textContent = `${f.hp} / ${f.max} can · Saldırı ${f.atk}`;
-    wrap.querySelectorAll('.bench-btn').forEach((b, i) => {
-      const x = S.list[i];
-      b.classList.toggle('ko', x.hp <= 0);
-      b.classList.toggle('on', i === S.idx);
-      b.querySelector('i').style.width = Math.max(0, x.hp / x.max * 100) + '%';
-      b.disabled = !(B.turnSide === side && isHuman(side) && i !== S.idx && x.hp > 0);
+  // Tahta: hücreler + kenar okları + küp taşları. Taşlar konum değişince kayarak gider.
+  G.boardHTML = function () {
+    let cells = '';
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) cells += `<button class="cell" data-r="${r}" data-c="${c}" style="--r:${r};--c:${c}" aria-label="Kare ${r + 1}-${c + 1}"></button>`;
+    let rows = '';
+    for (let r = 0; r < ROWS; r++) rows += `<span class="b-rowfx" data-r="${r}" style="--r:${r}"></span>
+      <button class="b-arrow l" data-r="${r}" data-d="-1" style="--r:${r}" aria-label="${r + 1}. sırayı sola döndür">‹</button>
+      <button class="b-arrow r" data-r="${r}" data-d="1" style="--r:${r}" aria-label="${r + 1}. sırayı sağa döndür">›</button>`;
+    return `<div class="b-grid">${cells}${rows}</div>`;
+  };
+  G.tokenHTML = (f) => `<canvas></canvas><span class="t-hp"><i></i></span><span class="t-lv">${f.lvl}</span><span class="t-ty"></span>`;
+  function buildBoard() {
+    const bd = $('bd');
+    bd.innerHTML = G.boardHTML();
+    const grid = bd.querySelector('.b-grid');
+    B.power.forEach(p => grid.querySelector(`.cell[data-r="${p.r}"][data-c="${p.c}"]`).classList.add('pw'));
+    units().forEach(f => {
+      const t = h('button', `tok ${f.side}${f.boss ? ' boss' : ''}${f.holo ? ' holo' : ''}`, G.tokenHTML(f));
+      t.dataset.u = f.uid;
+      t.setAttribute('aria-label', f.label);
+      t.style.setProperty('--tc', D.TYPES[typeKey(f)].color);
+      grid.appendChild(t);
+      requestAnimationFrame(() => R.drawPuzzle(t.querySelector('canvas'), f.def));
+    });
+    grid.onclick = (e) => {
+      const a = e.target.closest('.b-arrow');
+      if (a) return tapRotate(+a.dataset.r, +a.dataset.d);
+      const t = e.target.closest('.tok');
+      if (t) { const f = units().find(x => x.uid === +t.dataset.u); if (f) return tapCell(f.r, f.c); }
+      const c = e.target.closest('.cell');
+      if (c) tapCell(+c.dataset.r, +c.dataset.c);
+    };
+    // takım şeritleri
+    ['A', 'B'].forEach(s => {
+      const T = B[s];
+      $('b-' + s).innerHTML = `<span class="b-owner">${esc(T.name)}</span><span class="b-syn">${(T.syn || []).map(x => `<i title="${esc(x.desc)}">${esc(x.name)}</i>`).join('')}</span><span class="b-left"></span>`;
     });
   }
   function renderAll() {
     if (!B) return;
-    renderSide('A'); renderSide('B');
-    const side = B.turnSide, f = cur(side), human = isHuman(side) && !B.over;
-    const sk = D.SKILLS[f.def.skill];
-    $('act-atk').disabled = !human;
-    $('act-skill').disabled = !human || !canSkill(side);
-    $('act-skill').innerHTML = `<span class="cost-drop">${skillCost(f)}</span>${esc(sk.name)}<small>${esc(sk.desc)}</small>`;
-    const e = B[side].energy || 0;
-    $('e-bar').innerHTML = Array.from({ length: MAXE }, (_, i) => `<i class="${i < e ? 'on' : ''}"></i>`).join('');
-    $('e-num').textContent = e;
-    $('energy').classList.toggle('enemy-turn', B.mode !== 'pvp' && side === 'B');
-    let turn = '';
-    if (B.mode === 'pvp') turn = `Sıra: <b>${esc(B[side].name)}</b>`;
-    else if (B.auto) turn = 'Otomatik savaş açık';
-    else turn = side === 'A' ? 'Sıra sende · Yedeğe dokunarak küp değiştirebilirsin' : 'Rakip düşünüyor…';
-    $('b-turn').innerHTML = turn;
+    const side = B.turnSide, T = B[side], human = isHuman(side) && !B.over && !!B.endTurn, sel = B.sel;
+    const grid = $('bd').querySelector('.b-grid');
+    if (!grid) return;
+    const mv = human && sel && !B.aim ? moveCells(sel) : [];
+    const tg = human && sel && (B.aim || (!sel.acted && T.ap >= 2)) ? targets(sel) : [];
+    grid.querySelectorAll('.cell').forEach(c => {
+      const r = +c.dataset.r, cc = +c.dataset.c;
+      c.classList.toggle('mv', mv.some(p => p.r === r && p.c === cc));
+      c.classList.toggle('zone', !!sel && human && !B.aim && ROLE[typeKey(sel)].can(r - sel.r, cc - sel.c));
+    });
+    units().forEach(f => {
+      const t = tokEl(f);
+      if (!t) return;
+      t.style.setProperty('--r', f.r); t.style.setProperty('--c', f.c);
+      t.classList.toggle('ko', f.hp <= 0);
+      t.classList.toggle('sel', f === sel);
+      t.classList.toggle('tg', tg.includes(f));
+      t.classList.toggle('stun', !!f.stun);
+      t.classList.toggle('shield', f.shield > 0);
+      t.classList.toggle('done', f.side === side && human && f.acted && !(moveCells(f).length && T.ap));
+      t.classList.toggle('can', f.side === side && human && canAct(f));
+      const pct = Math.max(0, f.hp / f.max * 100);
+      const bar = t.querySelector('.t-hp i'); bar.style.width = pct + '%'; bar.classList.toggle('low', pct < 30);
+    });
+    grid.querySelectorAll('.b-arrow').forEach(a => { a.disabled = !human || T.rot || T.ap < 1 || B.busy; });
+    ['A', 'B'].forEach(s => {
+      const el = $('b-' + s).querySelector('.b-left');
+      if (el) el.innerHTML = B[s].list.map(f => `<i class="${f.hp <= 0 ? 'ko' : ''}" style="--p:${Math.max(0, f.hp / f.max * 100)}%"></i>`).join('');
+      $('b-' + s).classList.toggle('turn', side === s && !B.over);
+    });
+    // hamle puanı
+    const ap = T.ap || 0, max = Math.max(AP, ap);
+    $('b-hp').innerHTML = `<span>${B.mode === 'pvp' ? esc(T.name) : side === 'A' ? 'Hamle puanın' : 'Rakibin puanı'}</span>` + Array.from({ length: max }, (_, i) => `<i class="${i < ap ? 'on' : ''}"></i>`).join('') + `<b>${ap}</b>`;
+    $('b-hp').classList.toggle('enemy-turn', B.mode !== 'pvp' && side === 'B');
+    // seçili küp ve yetenek
+    const skb = $('act-skill');
+    if (sel && human) {
+      const sk = D.SKILLS[sel.def.skill], ty = D.TYPES[typeKey(sel)], ro = ROLE[typeKey(sel)];
+      $('b-sel').innerHTML = `<b>${esc(sel.label)}</b><small>${ty.name} ${ro.name} · ${ro.range} · ${sel.hp}/${sel.max} can · Saldırı ${sel.atk}${onPower(sel) ? ' · ⚡' : ''}</small>`;
+      skb.disabled = !skillReady(sel) || B.busy;
+      skb.innerHTML = `<span class="cost-drop">${skillAP(sel)}</span>${esc(sk.name)}<small>${sel.cd ? `${sel.cd} tur sonra hazır` : sel.acted ? 'Bu tur hamlesini yaptı' : esc(sk.desc)}</small>`;
+    } else {
+      $('b-sel').innerHTML = human ? '<b>Bir küpüne dokun</b><small>Yürü 1 · Saldır 2 · Döndür 1 puan</small>' : `<b>${B.over ? '' : esc(T.name) + ' oynuyor…'}</b><small>${B.auto ? 'Otomatik savaş açık' : ''}</small>`;
+      skb.disabled = true;
+      skb.innerHTML = '<span class="cost-drop">–</span>Yetenek<small>Önce küp seç</small>';
+    }
+    $('act-end').disabled = !human || B.busy;
   }
 
-  $('act-atk').onclick = () => { if (B && B.resolve) { Snd.click(); B.resolve({ kind: 'atk' }); } };
-  $('act-skill').onclick = () => { if (B && B.resolve && canSkill(B.turnSide)) { Snd.click(); B.resolve({ kind: 'skill' }); } };
+  $('act-skill').onclick = () => { Snd.click(); useSkill(); };
+  $('act-end').onclick = () => { if (B && B.endTurn && !B.busy) { Snd.click(); B.sel = null; B.aim = null; B.endTurn(); } };
   $('b-auto').onclick = () => {
     if (!B) return;
     B.auto = !B.auto; B.fast = B.auto;
     $('b-auto').textContent = B.auto ? 'Oto: Açık' : 'Oto: Kapalı';
-    if (B.auto && B.resolve && B.turnSide === 'A') B.resolve(ai('A'));
+    if (B.auto && B.endTurn && B.turnSide === 'A' && !B.busy) { const done = B.endTurn; B.endTurn = null; B.sel = null; renderAll(); aiTurn('A').then(() => done()); }
     renderAll();
   };
   $('b-quit').onclick = () => {
@@ -413,11 +680,11 @@
     const pvp = B.mode === 'pvp';
     G.confirm(pvp ? 'Maçı bitir?' : 'Pes et?', pvp ? 'Maç berabere sayılmaz, kimse kazanmaz.' : 'Bu savaşı kaybetmiş sayılırsın.', pvp ? 'Bitir' : 'Pes et', () => {
       if (!B) return;
-      if (B.resolve) B.resolve({ kind: 'quit' });
       if (pvp) { B.over = true; $('battle').hidden = true; B = null; return; }
       end(false);
     });
   };
+
   // ---------- İfadeler ----------
   function showEmote(side, i) {
     const wrap = $('b-' + side);

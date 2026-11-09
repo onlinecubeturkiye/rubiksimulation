@@ -40,6 +40,8 @@
     if (!s.lvl) { out.lvl = {}; for (const id in out.inv) out.lvl[id] = Math.min(10, out.inv[id]); }
     if (!s.v) out.seenIntro = true; // eski oyuncular rehberi tekrar görmesin
     out.team = (out.team || []).filter(id => out.inv[id]).slice(0, 3);
+    out.holo = s.holo || {};
+    out.prof = Object.assign({ fav: [], title: 'caylak' }, s.prof || {});
     // Eski 'sandık anahtarı' sistemi: biriken anahtarlar sandık olarak verilir
     if (s.keys) { out.chests = out.chests || [null, null, null, null]; out.chests[0] = out.chests[0] || { type: s.keys >= 3 ? 'altin' : 'gumus', end: null }; }
     delete out.keys;
@@ -71,12 +73,18 @@
   // ---------- Bulmacalar ----------
   G.level = (id) => G.S.inv[id] ? (G.S.lvl[id] || 1) : 0;
   G.statsOf = (def, lvl, mult = 1) => { const m = (1 + 0.1 * (lvl - 1)) * mult; return { hp: Math.round(def.hp * m), atk: Math.round(def.atk * m) }; };
+  G.HOLO_CHANCE = 0.04;
+  G.isHolo = (id) => !!(G.S.holo && G.S.holo[id]);
   G.addCube = function (id) {
     const isNew = !G.S.inv[id];
     G.S.inv[id] = (G.S.inv[id] || 0) + 1;
     if (isNew) G.S.lvl[id] = 1; else G.S.lvl[id] = Math.min(10, (G.S.lvl[id] || 1) + 1);
     if (isNew && G.S.team.length < 3) G.S.team.push(id);
-    return { isNew, lvl: G.S.lvl[id] };
+    // Parlak (holo) sürüm: %4 şans. Gücü değişmez, koleksiyonda parlar.
+    G.S.holo = G.S.holo || {};
+    let holo = false;
+    if (!G.S.holo[id] && Math.random() < G.HOLO_CHANCE) { G.S.holo[id] = true; holo = true; G.bump('holo'); }
+    return { isNew, lvl: G.S.lvl[id], holo };
   };
   G.upgradeCost = (def) => Math.round(40 * G.level(def.id) * (1 + D.RARITIES[def.rarity].order * 0.5) * (def.brand === 'topac' ? 0.6 : 1));
   G.rollPack = function (pack) {
@@ -144,7 +152,7 @@
   function statValue(name) {
     const S = G.S;
     switch (name) {
-      case 'collection': return D.CUBES.filter(c => S.inv[c.id]).length;
+      case 'collection': return D.CUBES.filter(c => c.rarity !== 'season' && S.inv[c.id]).length;
       case 'worlds': return S.adv.bosses.length;
       case 'stars': return G.totalStars();
       case 'trophies': return S.trophies;
@@ -253,8 +261,11 @@
     if (!S.season || S.season.id !== id) S.season = { id, pts: 0, claimed: [] };
     return S.season;
   };
+  G.seasonTheme = () => D.SEASONS[G.seasonId() % D.SEASONS.length];
+  G.baseCubeCount = () => D.CUBES.filter(c => c.rarity !== 'season').length;
   G.seasonReward = function (t) {
-    if (t === G.SEASON_TIERS) return { text: 'Mitik Küp', mythic: true };
+    if (t === G.SEASON_TIERS) { const th = G.seasonTheme(); return { text: `Sezon küpü: ${cubeById(th.cube).model}`, seasonCube: th.cube }; }
+    if (t === 25) return { text: 'Mitik Küp', mythic: true };
     if (t % 10 === 0) return { text: 'Efsane Paketi', pack: 'efsane' };
     if (t % 5 === 0) return { text: 'Usta Paketi', pack: 'usta' };
     if (t % 3 === 0) return { text: 'Klasik Paket', pack: 'klasik' };

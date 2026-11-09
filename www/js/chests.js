@@ -243,13 +243,15 @@
     card.classList.remove('flip'); void card.offsetWidth; card.classList.add('flip');
     if (item.coins) {
       card.style.setProperty('--rc', '#ffc928');
+      card.classList.remove('holo');
       card.innerHTML = `<div class="co-coins"><i class="coin"></i><i class="coin"></i><i class="coin"></i></div><b class="co-name">+${item.coins} jeton</b>`;
       window.FX.coins(8, card);
     } else {
       const r = D.RARITIES[item.def.rarity];
       card.style.setProperty('--rc', r.color);
       card.innerHTML = `<span class="rarity-tag" style="--glow:${r.color}">${r.name}</span><canvas></canvas>${G.brandChip(item.def)}<b class="co-name">${esc(item.def.model)}</b>
-        <span class="co-sub">${item.got.isNew ? '<b class="good">YENİ!</b>' : `Seviye ${item.got.lvl}`}</span>`;
+        <span class="co-sub">${item.got.holo ? '<b class="holo-txt">✨ PARLAK!</b> ' : ''}${item.got.isNew ? '<b class="good">YENİ!</b>' : `Seviye ${item.got.lvl}`}</span>`;
+      card.classList.toggle('holo', !!item.got.holo);
       R.drawPuzzle(card.querySelector('canvas'), item.def);
       Snd.reveal(r.order);
       if (r.order >= 2) window.FX.burstAt(card, r.color, 16 + r.order * 10, 6);

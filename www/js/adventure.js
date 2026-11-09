@@ -167,7 +167,7 @@
   function lost(st, bonus) {
     G.bump('losses');
     G.addCoins(10); G.addXP(10); G.save();
-    G.modal('Kaybettin', `<p>Teselli: +10 jeton, +10 XP.</p>${bonus ? bonus.html : ''}
+    G.modal('Kaybettin', `<p>Teselli: +10 jeton, +10 XP.</p>${bonus ? bonus.html : ''}${G.replayButtonsHTML()}
       <ul class="tips"><li>Paket açarak yeni bulmacalar bul.</li><li>Envanter’de bulmacalarını jetonla güçlendir.</li><li>Tür avantajını kullan: Küp &gt; Piramit &gt; Özel &gt; Küp.</li><li>Zorlanırsan önceki bölümleri tekrar oynayıp jeton topla.</li></ul>`,
       [{ label: 'Haritaya dön', onClick: render }, { label: 'Tekrar dene', cls: 'btn-pink', onClick: () => preview(st) }]);
   }
@@ -192,7 +192,7 @@
     const k = ALL.indexOf(st), next = ALL[k + 1];
     const body = G.modal(st.type === 'solve' ? 'Çözdün!' : 'Kazandın!', `
       <div class="stars-big">${[0, 1, 2].map(i => `<span class="${i < s ? 'on' : ''}" style="animation-delay:${i * 0.25}s">★</span>`).join('')}</div>
-      <p>+${rw.coins} jeton · +${rw.xp} XP${s > prev && !first ? ' · Yeni yıldız rekoru!' : ''}</p>${bonus ? bonus.html : ''}${extra}`,
+      <p>+${rw.coins} jeton · +${rw.xp} XP${s > prev && !first ? ' · Yeni yıldız rekoru!' : ''}</p>${bonus ? bonus.html : ''}${G.replayButtonsHTML()}${extra}`,
       [{ label: 'Haritaya dön', onClick: () => { G.show('adv'); render(); } },
        ...(next ? [{ label: `Sonraki: ${next.label}`, cls: 'btn-yellow', onClick: () => { G.show('adv'); render(); preview(next); } }] : [])]);
     for (let i = 0; i < s; i++) setTimeout(() => window.Sound.star(i), 250 + i * 250);
@@ -249,7 +249,7 @@
           G.bump('losses');
           const reached = f - 1;
           run = null; G.save(); renderTower();
-          G.modal('Kule bitti', `<div class="big-num">Kat ${f}</div><p>Bu katta durdun. ${reached > 0 ? `${reached}. kata kadar çıktın.` : ''}</p><p class="note">Sonraki tırmanış Kat ${S.towerCheckpoint + 1}’den başlar.</p>${bonus.html}`,
+          G.modal('Kule bitti', `<div class="big-num">Kat ${f}</div><p>Bu katta durdun. ${reached > 0 ? `${reached}. kata kadar çıktın.` : ''}</p><p class="note">Sonraki tırmanış Kat ${S.towerCheckpoint + 1}’den başlar.</p>${bonus.html}${G.replayButtonsHTML()}`,
             [{ label: 'Tamam', cls: 'btn-yellow' }]);
           return;
         }
@@ -261,7 +261,7 @@
         run.floor = f + 1;
         G.save(); renderTower();
         window.FX.coins(5);
-        G.modal(`Kat ${f} geçildi!`, `<p>+${coins} jeton</p>${bonus.html}${note}<p class="note">Sıradaki kat daha zor. Devam et ya da mola ver.</p>`,
+        G.modal(`Kat ${f} geçildi!`, `<p>+${coins} jeton</p>${bonus.html}${G.replayButtonsHTML()}${note}<p class="note">Sıradaki kat daha zor. Devam et ya da mola ver.</p>`,
           [{ label: 'Mola ver', onClick: () => { run = null; renderTower(); } }, { label: `Kat ${f + 1}`, cls: 'btn-pink', onClick: climb }]);
       },
     });

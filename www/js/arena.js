@@ -80,7 +80,7 @@
   // ---------- Dönen arena modları (her 6 saatte değişir) ----------
   const MODES = [
     { id: 'klasik', name: 'Klasik', desc: 'Normal kurallar.', color: '#2e8cff', mod: {} },
-    { id: 'enerji', name: 'Enerji Fırtınası', desc: 'Enerji her turda 3 dolar. Yetenek yağmuru!', color: '#c040ff', mod: { energy: 3 } },
+    { id: 'enerji', name: 'Enerji Fırtınası', desc: 'Her turda +1 hamle puanı. Hareketli savaşlar!', color: '#c040ff', mod: { energy: 3 } },
     { id: 'kritik', name: 'Kritik Gecesi', desc: 'Kritik vuruş şansı %20 daha fazla.', color: '#ff4d5e', mod: { crit: 0.2 } },
     { id: 'dev', name: 'Dev Küpler', desc: 'Tüm küplerin canı 2 kat. Uzun savaşlar!', color: '#3bdc6e', mod: { hp: 2 } },
     { id: 'teke', name: 'Teke Tek', desc: 'Takımının ilk küpüyle tek başına savaş.', color: '#ff8a1f', mod: { solo: true } },
@@ -219,7 +219,7 @@
         if (G.S.rankSeason) G.S.rankSeason.peak = Math.max(G.S.rankSeason.peak, after);
         G.modal(res.won ? 'Kazandın!' : 'Kaybettin', `
           <div class="big-num">${tr >= 0 ? '+' : ''}${tr} kupa</div>
-          <p>+${coins} jeton · +${res.won ? 30 : 10} XP</p>${bonus.html}
+          <p>+${coins} jeton · +${res.won ? 30 : 10} XP</p>${bonus.html}${G.replayButtonsHTML()}
           ${!res.won && tr === 0 ? '<p class="note">Rütbe koruması: bu rütbe ailesinin altına düşmezsin.</p>' : ''}
           ${res.won ? '' : '<p class="note">Takımını güçlendir ya da tür avantajı olan bulmacalar seç.</p>'}`,
           [{ label: 'Tamam', cls: 'btn-yellow', onClick: render }]);

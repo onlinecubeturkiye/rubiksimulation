@@ -233,13 +233,14 @@
     $('rv-rarity').textContent = r.name;
     $('rv-name').innerHTML = `${G.brandChip(def, 'big')}<span>${esc(def.model)}</span>`;
     const ty = D.TYPES[G.typeOf(def)];
-    $('rv-sub').innerHTML = (got.isNew ? '<b class="good">YENİ!</b> Koleksiyonuna eklendi.' : `Tekrar geldi: <b>seviye ${got.lvl}</b> oldu.`) + ` · ${ty.name} · ${esc(D.SKILLS[def.skill].name)}`;
+    rv.classList.toggle('holo', !!got.holo);
+    $('rv-sub').innerHTML = (got.holo ? '<b class="holo-txt">✨ PARLAK SÜRÜM!</b> ' : '') + (got.isNew ? '<b class="good">YENİ!</b> Koleksiyonuna eklendi.' : `Tekrar geldi: <b>seviye ${got.lvl}</b> oldu.`) + ` · ${ty.name} · ${esc(D.SKILLS[def.skill].name)}`;
     rv.hidden = false;
     rv.style.animation = 'none'; void rv.offsetWidth; rv.style.animation = '';
     R.drawPuzzle($('rv-canvas'), def);
     Snd.reveal(r.order);
     setTimeout(() => window.FX.burstAt($('rv-canvas'), r.color, 20 + r.order * 12, 6 + r.order), 120);
-    if (r.order >= 3) window.FX.confetti(60 + r.order * 20);
+    if (r.order >= 3 || got.holo) window.FX.confetti(60 + r.order * 20);
     if (r.order >= 3 && navigator.vibrate) { try { navigator.vibrate([60, 40, 120]); } catch (e) {} }
     const again = $('open-again');
     if (paid) { again.hidden = false; again.textContent = `Bir tane daha (${priceOf(pack)})`; again.disabled = G.S.coins < priceOf(pack); }
@@ -280,8 +281,7 @@
   }
   function renderInv() {
     const S = G.S;
-    const owned = D.CUBES.filter(c => S.inv[c.id]).length;
-    $('inv-progress').textContent = `${owned}/${D.CUBES.length} keşfedildi`;
+    $('inv-progress').textContent = `${G.statValue('collection')}/${G.baseCubeCount()} keşfedildi`;
     const dupes = D.CUBES.reduce((a, c) => a + Math.max(0, (S.inv[c.id] || 0) - 1) * D.RARITIES[c.rarity].sell, 0);
     $('sell-all').textContent = dupes ? `Fazlaları sat (+${dupes})` : 'Fazla yok';
     $('sell-all').disabled = !dupes;
@@ -289,12 +289,13 @@
     renderBrandFilter();
     const grid = $('inv-grid'); grid.innerHTML = '';
     const list = D.CUBES.slice()
+      .filter(c => c.rarity !== 'season' || S.inv[c.id])
       .filter(c => filter === 'all' || G.typeOf(c) === filter)
       .filter(c => brandFilter === 'all' || c.brand === brandFilter)
       .sort((a, b) => (S.inv[b.id] ? 1 : 0) - (S.inv[a.id] ? 1 : 0) || D.RARITIES[b.rarity].order - D.RARITIES[a.rarity].order || G.level(b.id) - G.level(a.id));
     list.forEach(def => {
       const have = S.inv[def.id] || 0;
-      const card = h('button', 'card' + (have ? '' : ' locked') + (S.team.includes(def.id) ? ' in-team' : ''));
+      const card = h('button', 'card' + (have ? '' : ' locked') + (S.team.includes(def.id) ? ' in-team' : '') + (have && G.isHolo(def.id) ? ' holo' : ''));
       card.style.setProperty('--rc', D.RARITIES[def.rarity].color);
       const ty = D.TYPES[G.typeOf(def)];
       card.innerHTML = `${have ? `<span class="cost" title="Yetenek enerjisi">${G.skillCost(def)}</span>` : ''}<canvas></canvas>${have ? G.brandChip(def, 'sm') : ''}<span class="nm">${have ? esc(def.model) : '???'}</span><span class="rr">${D.RARITIES[def.rarity].name}</span>` +
@@ -338,6 +339,11 @@
       else slot.disabled = true;
       wrap.appendChild(slot);
     }
+    let syn = $('team-syn');
+    if (!syn) { syn = h('div', 'team-syn'); syn.id = 'team-syn'; wrap.after(syn); }
+    const list = G.synergy(G.S.team.map(cubeById).filter(Boolean));
+    syn.innerHTML = list.length ? list.map(x => `<span><b>${esc(x.name)}</b> ${esc(x.desc)}</span>`).join('')
+      : '<span class="note">Takım uyumu: aynı markadan 2-3 küp ya da 3 farklı tür seç, bonus kazan.</span>';
   }
   function openDetail(def) {
     const S = G.S;
@@ -355,7 +361,9 @@
         <div><span class="label">Can</span><b>${st.hp}${next ? `<small> → ${next.hp}</small>` : ''}</b></div>
         <div><span class="label">Saldırı</span><b>${st.atk}${next ? `<small> → ${next.atk}</small>` : ''}</b></div>
       </div>
-      <div class="skill"><b>${esc(sk.name)}</b>: ${esc(sk.desc)}<br><span class="note">${ty.name}, ${D.TYPES[ty.beats].name} türüne karşı güçlü.</span></div>
+      <div class="skill"><b>${esc(sk.name)}</b>: ${esc(sk.desc)}<br><span class="note">${ty.name} ${G.ROLE[G.typeOf(def)].name}: ${G.ROLE[G.typeOf(def)].range} saldırır. ${D.TYPES[ty.beats].name} türüne karşı güçlü.</span></div>
+      ${G.isHolo(def.id) ? '<p class="holo-txt">✨ Parlak sürüm sende</p>' : ''}
+      <button class="link-btn" id="fav-btn">${(G.S.prof && (G.S.prof.fav || []).includes(def.id)) ? '★ Profil vitrininden çıkar' : '☆ Profil vitrinine koy'}</button>
       <p class="note">${have} adet var. Kopyalar seviyeyi bedava yükseltir.</p>`,
       [
         { label: lv >= 10 ? 'En yüksek seviye' : `Güçlendir (${cost})`, cls: 'btn-yellow', disabled: lv >= 10 || S.coins < cost, onClick: () => upgrade(def) },
@@ -364,7 +372,11 @@
         { label: `Sat (+${r.sell})`, disabled: have < 2, onClick: () => sell(def) },
         ...(def.type === 'cube' ? [{ label: 'Çöz', onClick: () => { G.solveId = def.id; G.show('solve'); } }] : []),
       ], { replace: true });
-    if (body) R.drawPuzzle(body.querySelector('canvas'), def);
+    if (!body) return;
+    const cv = body.querySelector('canvas');
+    cv.classList.toggle('holo-cv', G.isHolo(def.id));
+    R.drawPuzzle(cv, def);
+    $('fav-btn').onclick = () => { G.toggleFav(def.id); openDetail(def); };
   }
   G.openDetail = openDetail;
   function upgrade(def) {

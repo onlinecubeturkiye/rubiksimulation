@@ -6,6 +6,7 @@
     epic:      { name: 'Epik',   color: '#b45cff', sell: 60,  mult: 1.45, order: 2 },
     legendary: { name: 'Efsane', color: '#ffb020', sell: 150, mult: 1.8,  order: 3 },
     mythic:    { name: 'Mitik',  color: '#ff3d8b', sell: 400, mult: 2.3,  order: 4 },
+    season:    { name: 'Sezon',  color: '#2ee6c8', sell: 300, mult: 2.1,  order: 4 }, // yalnız Sezon Yolu'nun son ödülü
   };
   const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic'];
 
@@ -21,6 +22,10 @@
     void:    { U: '#8b5cf6', D: '#2a2770', F: '#c084fc', B: '#4338ca', R: '#ec4899', L: '#06b6d4', body: '#000000' },
     silver:  { U: '#eef0f3', D: '#cbd5e1', F: '#a3b1c2', B: '#64748b', R: '#8e9aab', L: '#d7dde5', body: '#1f2937' },
     mirrorgold: { U: '#fff2b8', D: '#f0cc5a', F: '#d9a521', B: '#8a6212', R: '#b8861d', L: '#f6dc85', body: '#2a1d06' },
+    frost:   { U: '#ffffff', D: '#e0f7ff', F: '#a6e4ff', B: '#5aa7ff', R: '#c9d7ff', L: '#7ff0ff', body: '#e8f4ff' },
+    lava:    { U: '#ffe08a', D: '#ff9a1f', F: '#ff5a1f', B: '#5a0a0a', R: '#d6150f', L: '#ffbf3f', body: '#1a0505' },
+    forest:  { U: '#f4ffe0', D: '#c8e86a', F: '#2fa84f', B: '#1f5f3a', R: '#7a4a1e', L: '#9be15d', body: '#14200e' },
+    nebula:  { U: '#ffe6ff', D: '#ff9de2', F: '#7a5cff', B: '#1e1b6e', R: '#ff3d8b', L: '#3de0ff', body: '#06041a' },
     diamond: { U: '#e8fdff', D: '#b5f5ff', F: '#67e8f9', B: '#0ea5e9', R: '#a5f3fc', L: '#22d3ee', body: '#0b3a4a' },
     rainbow: { U: '#b45cff', D: '#ffffff', F: '#ff3b3b', B: '#2ec4ff', R: '#ff9f1c', L: '#3ee08f', body: '#111018',
                ring: ['#ff3b3b', '#ff9f1c', '#ffe14d', '#3ee08f', '#2ec4ff'] },
@@ -28,7 +33,7 @@
 
   const SKILLS = {
     double: { name: 'Köşe Darbesi', desc: '2 kat hasar verir.', cost: 5 },
-    heal:   { name: 'Hizala',       desc: 'Canının %35’ini yeniler.', cost: 4 },
+    heal:   { name: 'Hizala',       desc: 'Kendini ya da yanındaki dostunu %35 iyileştirir.', cost: 4 },
     stun:   { name: 'Karıştır',     desc: 'Az hasar verir, rakip 1 tur bekler.', cost: 5 },
     shield: { name: 'Kalkan',       desc: 'Sonraki 2 saldırıda yarı hasar alır.', cost: 3 },
     drain:  { name: 'Emici',        desc: 'Hasar verir, yarısını can olarak alır.', cost: 4 },
@@ -73,6 +78,11 @@
     mk('c5v', 'Kara Delik',        'cube',    5, 'void',    'mythic',    'drain'),
     mk('p3d', 'Elmas Piramit',     'pyramid', 3, 'diamond', 'mythic',    'double'),
     mk('mrg', 'Altın Ayna',        'mirror',  3, 'mirrorgold', 'mythic', 'stun'),
+    // Sezon küpleri: paketten çıkmaz, yalnız o sezonun Sezon Yolu sonunda kazanılır
+    mk('ss1', 'Kar Tanesi',        'cube',    3, 'frost',   'season',    'shield'),
+    mk('ss2', 'Volkan Piramit',    'pyramid', 3, 'lava',    'season',    'double'),
+    mk('ss3', 'Orman Megaküp',     'mega',    3, 'forest',  'season',    'heal'),
+    mk('ss4', 'Nebula 4',          'cube',    4, 'nebula',  'season',    'drain'),
   ];
 
   // Kurgusal küp markaları. Gerçek markalarla bir ilgisi yoktur.
@@ -101,9 +111,14 @@
     c6: ['zenko', 'ZENKO Aero 6 M'], c7: ['zenko', 'ZENKO Aero 7 M'], c3g: ['zenko', 'ZENKO Aero 3 Gold'],
     mgr: ['vexa', 'VEXA Mega Prizma'], c5g: ['hayate', 'HAYATE Galaxy 5 M'],
     c3c: ['zenko', 'ZENKO Kristal MAX'], c5v: ['vexa', 'VEXA Void 5'], p3d: ['zenko', 'ZENKO Elmas Piramit'], mrg: ['vexa', 'VEXA Ayna Gold'],
+    ss1: ['torva', 'TORVA Kar Tanesi'], ss2: ['zenko', 'ZENKO Volkan Piramit'], ss3: ['hayate', 'HAYATE Orman Megaküp'], ss4: ['vexa', 'VEXA Nebula 4'],
   };
   CUBES.forEach(c => { const m = MODELS[c.id]; c.brand = m[0]; c.name = m[1]; c.model = m[1].slice(BRANDS[m[0]].name.length + 1); if (c.brand === 'kairo') c.hp = Math.round(c.hp * 1.15); });
 
+  const SEASONS = [
+    { name: 'Buz Sezonu', cube: 'ss1', color: '#7fd6ff' }, { name: 'Ateş Sezonu', cube: 'ss2', color: '#ff6a1f' },
+    { name: 'Orman Sezonu', cube: 'ss3', color: '#2fa84f' }, { name: 'Uzay Sezonu', cube: 'ss4', color: '#7a5cff' },
+  ];
   // Oranlar: Yaygın, Nadir, Epik, Efsane, Mitik (yüzde)
   const PACKS = [
     { id: 'klasik', name: 'Klasik Paket', price: 100, odds: [70, 22, 6.5, 1.4, 0.1],
@@ -228,5 +243,5 @@
                        'tahta', 'gumus', 'sihirli', 'tahta', 'gumus', 'altin', 'tahta', 'gumus', 'tahta', 'dev'];
   const EMOTES = [['😂', 'Haha!'], ['👍', 'İyi oyun!'], ['😮', 'Vay be!'], ['😡', 'Grrr!'], ['💪', 'Hadi!'], ['😭', 'Olamaz!']];
 
-  window.GameData = { CHESTS, CHEST_CYCLE, EMOTES, TIERS, BRANDS, RARITIES, RARITY_ORDER, PALETTES, SKILLS, CUBES, PACKS, BOTS, TYPE_OF, TYPES, WORLDS, QUESTS, ACHIEVEMENTS };
+  window.GameData = { SEASONS, CHESTS, CHEST_CYCLE, EMOTES, TIERS, BRANDS, RARITIES, RARITY_ORDER, PALETTES, SKILLS, CUBES, PACKS, BOTS, TYPE_OF, TYPES, WORLDS, QUESTS, ACHIEVEMENTS };
 })();

@@ -102,6 +102,52 @@
     </svg>`;
   }
 
+  // ---------- Köy manzarası: toplam bina seviyesi arttıkça büyür ----------
+  const STAGES = [
+    { min: 0, name: 'Boş Arsa' }, { min: 4, name: 'Küçük Atölye' }, { min: 8, name: 'Atölye Köyü' },
+    { min: 12, name: 'Küp Kasabası' }, { min: 16, name: 'Küp Şehri' },
+  ];
+  const total = () => ['mine', 'gym', 'depot', 'lab'].reduce((a, k) => a + lv(k), 0);
+  function house(x, k, l) {
+    const d = B[k], base = 118;
+    if (!l) return `<g transform="translate(${x} ${base})"><rect x="-2" y="-22" width="4" height="22" fill="#8a5a22"/><rect x="-14" y="-30" width="28" height="12" rx="2" fill="#ffd23f" stroke="#0b1033" stroke-width="2"/><path d="M-10 -24h20" stroke="#0b1033" stroke-width="2" stroke-dasharray="4 3"/></g>`;
+    const hgt = 18 + l * 7, w = 26 + l * 2;
+    let floors = '';
+    for (let i = 0; i < l; i++) floors += `<rect x="${-w / 2 + 5}" y="${-hgt + 14 + i * 7}" width="5" height="4" fill="${i % 2 ? '#ffe88a' : '#9fd3ff'}"/><rect x="${w / 2 - 10}" y="${-hgt + 14 + i * 7}" width="5" height="4" fill="#9fd3ff"/>`;
+    return `<g transform="translate(${x} ${base})">
+      <rect x="${-w / 2}" y="${-hgt}" width="${w}" height="${hgt}" fill="${d.wall}" stroke="#0b1033" stroke-width="2"/>
+      <path d="M${-w / 2 - 4} ${-hgt} L0 ${-hgt - 14 - l * 2} L${w / 2 + 4} ${-hgt}Z" fill="${d.roof}" stroke="#0b1033" stroke-width="2" stroke-linejoin="round"/>
+      ${floors}<rect x="-4" y="-10" width="8" height="10" fill="#6b4220" stroke="#0b1033" stroke-width="1.5"/>
+      ${l >= 5 ? `<path d="M0 ${-hgt - 16 - l * 2}v-12" stroke="#0b1033" stroke-width="1.5"/><path d="M0 ${-hgt - 28 - l * 2}l10 3-10 3z" fill="${d.roof}" stroke="#0b1033" stroke-width="1"/>` : ''}
+    </g>`;
+  }
+  const tree = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-2" y="-8" width="4" height="10" fill="#7a4a1e"/><circle cy="-16" r="11" fill="#2fb35a" stroke="#0b1033" stroke-width="2"/><circle cx="-4" cy="-19" r="4" fill="#5fd884"/></g>`;
+  const lamp = (x) => `<g transform="translate(${x} 122)"><rect x="-1.5" y="-26" width="3" height="26" fill="#2a2f5a"/><circle cy="-28" r="4.5" fill="#ffe88a" stroke="#0b1033" stroke-width="1.5"/><circle cy="-28" r="12" fill="#ffe88a" opacity=".25"/></g>`;
+  function townSVG() {
+    const T = total(), sg = STAGES.filter(x => T >= x.min).length - 1;
+    const night = sg >= 4;
+    const sky = night ? ['#2a2f8a', '#7a5cff'] : sg >= 3 ? ['#3d8bff', '#ffc38a'] : ['#4fb4ff', '#bfe9ff'];
+    let o = `<svg viewBox="0 0 360 150" class="town-svg" aria-hidden="true"><defs><linearGradient id="tsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient></defs>
+      <rect width="360" height="150" fill="url(#tsky)"/>`;
+    if (night) o += [[30, 20], [80, 12], [140, 26], [220, 14], [300, 22], [340, 10]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6" fill="#fff"/>`).join('') + '<circle cx="320" cy="30" r="12" fill="#fff6c8"/>';
+    else o += '<circle cx="315" cy="30" r="14" fill="#fff3a0"/><ellipse cx="70" cy="30" rx="26" ry="8" fill="#fff" opacity=".8"/><ellipse cx="190" cy="22" rx="20" ry="6" fill="#fff" opacity=".7"/>';
+    o += `<path d="M0 110 Q60 80 120 104 T240 98 T360 104 V150 H0Z" fill="${night ? '#2b6e4a' : '#5fcf7a'}"/>`;
+    o += `<rect y="118" width="360" height="32" fill="${sg === 0 ? '#c9965a' : night ? '#2f8a4f' : '#3fbf5f'}"/>`;
+    if (sg >= 2) o += '<path d="M0 132 H360 V142 H0Z" fill="#d9c9a8"/><path d="M0 132 H360" stroke="#b5a37f" stroke-width="1.5" stroke-dasharray="10 6"/>';
+    else if (sg === 0) o += '<ellipse cx="60" cy="128" rx="10" ry="4" fill="#a0713f"/><ellipse cx="290" cy="132" rx="14" ry="5" fill="#a0713f"/><path d="M200 118l14-20 14 20z" fill="#e8ecff" stroke="#0b1033" stroke-width="2"/>';
+    if (sg >= 1) o += `<path d="M6 118v-10M18 118v-10M30 118v-10M330 118v-10M342 118v-10M354 118v-10M2 111H34M326 111H358" stroke="#8a5a22" stroke-width="3"/>` + tree(48, 118, 0.9) + tree(312, 118, 1);
+    if (sg >= 2) o += lamp(110) + lamp(250) + '<g fill="#ff6ad5"><circle cx="70" cy="128" r="2.5"/><circle cx="76" cy="130" r="2.5" fill="#ffd23f"/><circle cx="290" cy="128" r="2.5"/></g>';
+    if (sg >= 3) o += tree(20, 116, 0.7) + tree(345, 116, 0.75) + `<g transform="translate(180 128)"><ellipse rx="26" ry="7" fill="#7fc8ff" stroke="#0b1033" stroke-width="2"/><rect x="-6" y="-22" width="12" height="18" fill="#cfd6ff" stroke="#0b1033" stroke-width="2"/><g transform="translate(0 -30)"><path d="M0-8 8-4 0 0-8-4z" fill="#ffd23f" stroke="#0b1033" stroke-width="1.2"/><path d="M-8-4 0 0v9l-8-4z" fill="#ff4757" stroke="#0b1033" stroke-width="1.2"/><path d="M8-4 0 0v9l8-4z" fill="#3d8bff" stroke="#0b1033" stroke-width="1.2"/></g></g>`;
+    // binalar
+    const xs = { mine: 80, gym: 140, depot: 222, lab: 282 };
+    o += Object.entries(xs).map(([k, x]) => (sg === 0 && !lv(k) ? '' : house(x, k, lv(k)))).join('');
+    if (sg >= 4) o += `<g transform="translate(180 64)"><rect x="-8" y="0" width="16" height="40" fill="#5a4fd6" stroke="#0b1033" stroke-width="2"/><g class="town-cube"><path d="M0-22 14-15 0-8-14-15z" fill="#fff"/><path d="M-14-15 0-8v15l-14-7z" fill="#2ed47a"/><path d="M14-15 0-8v15l14-7z" fill="#ff4757"/></g></g>` +
+      '<g fill="#ffd23f"><circle cx="40" cy="40" r="2"/><circle cx="46" cy="34" r="1.5"/><circle cx="34" cy="34" r="1.5"/><circle cx="270" cy="46" r="2" fill="#ff6ad5"/><circle cx="276" cy="40" r="1.5" fill="#ff6ad5"/></g>';
+    o += '</svg>';
+    const next = STAGES[sg + 1];
+    return `${o}<div class="town-cap"><b>${STAGES[sg].name}</b><small>${next ? `Sonraki görünüm: ${next.name} · ${T}/${next.min} bina yıldızı` : 'En büyük köy! Tebrikler'}</small></div>`;
+  }
+
   // ---------- Görünüm ----------
   function render() {
     checkBuild();
@@ -111,6 +157,7 @@
       <div><b>Usta Robot</b><small>${b ? `${esc(B[b.k].name)} yükseltiliyor · <span data-end="${b.end}">${fmt(b.end - Date.now())}</span>` : 'Boşta. Bir bina yükselt!'}</small></div>
       ${b ? `<button class="btn btn-small btn-yellow" id="rush-btn" data-rush="${b.end}">Hemen bitir (${rushCost(b.end - Date.now())})</button>` : ''}`;
     if (b) $('rush-btn').onclick = rush;
+    $('town').innerHTML = townSVG();
     const v = $('village'); v.innerHTML = '';
     ORDER.forEach(k => {
       const d = B[k], l = k === 'table' ? 1 : lv(k), locked = S.level < d.unlock;

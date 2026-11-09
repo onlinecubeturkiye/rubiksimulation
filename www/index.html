@@ -87,6 +87,10 @@
         <span><b>Arkadaşınla oyna</b><small>Aynı telefonda 2 kişilik maç</small></span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm8 0a4 4 0 1 1 0-8 4 4 0 0 1 0 8ZM2 20c0-3.3 2.7-6 6-6s6 2.7 6 6H2Zm12.6 0a7.9 7.9 0 0 0-2-5.3A6 6 0 0 1 22 20h-7.4Z"/></svg>
       </button>
+      <button class="pvp-card club-card" id="club-btn">
+        <span><b>Kulüp</b><small>Sohbet et, küp bağışla, takas yap</small></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm0 5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Zm-4.5 9.5c.6-2 2.4-3 4.5-3s3.9 1 4.5 3h-9Z"/></svg>
+      </button>
       <h3 class="sub-title">Kupa Yolu</h3>
       <p class="note">Her 100 kupada bir ödül. Kupa kaybetsen bile kazandığın ödüller gitmez.</p>
       <div class="road" id="road"></div>
@@ -140,6 +144,7 @@
           <button data-f="ozel" aria-pressed="false">Özel</button>
         </div>
         <button class="btn btn-small" id="sell-all">Fazlaları sat</button>
+        <button class="btn btn-small btn-blue" id="trade-btn">Takas</button>
       </div>
       <div class="brand-row" id="brand-filter"></div>
       <div class="brand-banner" id="brand-info" hidden></div>
@@ -149,6 +154,7 @@
     <!-- ATÖLYE -->
     <section class="tab" id="tab-base" hidden>
       <div class="sec-head"><h2 class="sec-title">Atölye</h2></div>
+      <div class="town" id="town"></div>
       <div class="builder" id="builder"></div>
       <div class="village" id="village"></div>
       <p class="note">Binaları yükselt: jeton üretsin, küplerin güçlensin. Aynı anda tek bina yükseltilir.</p>
@@ -210,10 +216,10 @@
     </div>
   </div>
   <div class="emote-pop" id="emote-pop" hidden></div>
-  <div class="b-side enemy" id="b-B"></div>
+  <div class="b-strip enemy" id="b-B"></div>
+  <div class="board" id="bd"></div>
+  <div class="b-strip me" id="b-A"></div>
   <div class="blog" id="blog" aria-live="polite"></div>
-  <div class="b-side me" id="b-A"></div>
-  <div class="b-turn" id="b-turn"></div>
   <div class="power" id="power" hidden>
     <div class="power-head"><b>Doğru anda dokun!</b><span class="combo-txt" id="power-combo"></span></div>
     <div class="power-track"><span class="perfect"></span><span class="power-needle"></span></div>
@@ -223,11 +229,23 @@
     <span class="def-hint">Rakip saldırıyor! Halka kalkana değince dokun!</span>
     <span class="def-wrap"><span class="def-ring" id="def-ring"></span><button class="def-btn" id="def-btn">SAVUN!</button></span>
   </div>
-  <div class="energy" id="energy"><span class="e-ico">⚡</span><div class="e-bar" id="e-bar"></div><b id="e-num">0</b></div>
   <div class="b-acts" id="b-acts">
-    <button class="btn btn-big" id="act-atk">Saldır<small>Normal hasar</small></button>
-    <button class="btn btn-pink btn-big" id="act-skill">Yetenek</button>
+    <div class="b-hp" id="b-hp"></div>
+    <div class="b-sel" id="b-sel"></div>
+    <div class="b-btns">
+      <button class="btn btn-pink" id="act-skill">Yetenek</button>
+      <button class="btn btn-yellow" id="act-end">Turu bitir<small>Sırayı rakibe ver</small></button>
+    </div>
   </div>
+</div>
+
+<!-- Savaş tekrarı -->
+<div class="bscreen replay" id="replay" hidden>
+  <div class="b-top"><span id="rp-title">Tekrar</span><div class="b-tools"><button class="btn btn-small btn-blue" id="rp-share">Paylaş</button><button class="btn btn-small" id="rp-close">Kapat</button></div></div>
+  <div class="board" id="rp-board"></div>
+  <div class="blog" id="rp-log"></div>
+  <div class="rp-prog"><i id="rp-bar"></i></div>
+  <div class="rp-ctrl"><button class="btn" id="rp-prev" aria-label="Geri">⏮</button><button class="btn btn-yellow" id="rp-play" aria-label="Oynat">⏸</button><button class="btn" id="rp-next" aria-label="İleri">⏭</button><span id="rp-step"></span></div>
 </div>
 
 <!-- Paket açma -->
@@ -291,6 +309,8 @@
 <script src="js/firebase-config.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/battle.js"></script>
+<script src="js/social.js"></script>
+<script src="js/club.js"></script>
 <script src="js/adventure.js"></script>
 <script src="js/shop.js"></script>
 <script src="js/chests.js"></script>

@@ -59,16 +59,19 @@
     const st = [
       ['Galibiyet', S.stats.wins], ['Yenilgi', S.stats.losses], ['Kupa', S.trophies],
       ['Yıldız', `${G.totalStars()}/${G.allStages.length * 3}`], ['Kule', S.stats.towerBest || 0], ['Paket', S.stats.packs],
-      ['Çözüm', S.stats.solves], ['En uzun seri', S.bestStreak || 0], ['En iyi kombo', S.stats.maxCombo || 0], ['Giriş serisi', `${S.login.streak}. gün`], ['Koleksiyon', `${G.statValue('collection')}/${D.CUBES.length}`], ['3×3 rekor', S.best[3] ? window.Sim.fmt(S.best[3]) : '-'],
+      ['Çözüm', S.stats.solves], ['En uzun seri', S.bestStreak || 0], ['En iyi kombo', S.stats.maxCombo || 0], ['Giriş serisi', `${S.login.streak}. gün`], ['Koleksiyon', `${G.statValue('collection')}/${G.baseCubeCount()}`], ['3×3 rekor', S.best[3] ? window.Sim.fmt(S.best[3]) : '-'],
     ];
     const doneAch = D.ACHIEVEMENTS.filter(a => S.ach[a.id]).length;
     const ach = D.ACHIEVEMENTS.map(a => {
       const ok = S.ach[a.id], p = G.achProgress(a);
       return `<li class="${ok ? 'ok' : ''}"><span class="a-ico">${ok ? '★' : '☆'}</span><div><b>${esc(a.name)}</b><small>${esc(a.desc)}${ok ? '' : ` · ${p}/${a.target}`}</small></div><span class="a-rw">+${a.reward}</span></li>`;
     }).join('');
-    const body = G.modal(S.name, `
+    const body = G.modal('Profil', `
+      ${G.profileCardHTML()}
       <div class="lvl-big"><span>Seviye ${S.level}</span><div class="qbar"><i style="width:${S.xp / need * 100}%"></i></div><small>${S.xp}/${need} XP · her 5 seviyede bedava Usta Paketi</small></div>
       <div class="pstats">${st.map(([k, v]) => `<div><span class="label">${k}</span><b>${v}</b></div>`).join('')}</div>
+      <div class="sec-head"><h3>Son savaşlar</h3></div>
+      ${G.replayListHTML()}
       <div class="sec-head"><h3>Başarımlar</h3><span class="note">${doneAch}/${D.ACHIEVEMENTS.length}</span></div>
       <ul class="ach">${ach}</ul>
       ${G.auth.enabled ? `<h3>RA ID hesabı</h3>
@@ -87,8 +90,10 @@
         <button class="btn btn-small" id="set-intro">Nasıl oynanır?</button>
         <button class="btn btn-small danger" id="set-reset">Oyunu sıfırla</button>
       </div>
-      <p class="note">Küp Arena v3.0 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
+      <p class="note">Küp Arena v3.1 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
     if (!body) return;
+    G.bindProfileCard(body, openProfile);
+    G.bindReplayList(body);
     if (G.auth.enabled) {
       if ($('ra-in')) $('ra-in').onclick = () => G.auth.openLogin('profile');
       if ($('ra-out')) $('ra-out').onclick = () => G.confirm('Çıkış yap?', 'Bu cihazdaki ilerleme kalır. Tekrar giriş yapınca buluttan devam edersin.', 'Çıkış yap', G.auth.signOut);
