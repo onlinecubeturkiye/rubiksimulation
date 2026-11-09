@@ -159,7 +159,7 @@
         ...(st === 'locked' ? [{ label: 'Açmaya başla', cls: 'btn-green', disabled: anyUnlocking(), onClick: () => { c.end = now() + def.mins * 60000; G.save(); renderSlots(); } }] : []),
         { label: `Hemen aç (${cost})`, cls: 'btn-yellow', disabled: G.S.coins < cost, onClick: () => {
           if (G.S.coins < cost) return;
-          G.S.coins -= cost; list[i] = null; G.save(); renderSlots(); openChest(c.type);
+          G.S.coins -= cost; G.coinFloat(-cost); list[i] = null; G.save(); renderSlots(); openChest(c.type);
         } },
       ], { replace: true });
     if (body) body.querySelector('.chest-svg').classList.add('wobble');
@@ -184,6 +184,7 @@
     return picks.sort((a, b) => D.RARITIES[a.rarity].order - D.RARITIES[b.rarity].order);
   }
   function openChest(type) {
+    G.holdRewards = true;
     const def = D.CHESTS[type];
     const cubes = rollContents(type);
     const results = cubes.map(c => ({ def: c, got: G.addCube(c.id) }));
@@ -269,6 +270,7 @@
     s.appendChild(b);
   }
   function close() {
+    G.holdRewards = false; G.save();
     $('chest-open').hidden = true; opening = null;
     if (G.current === 'home') G.renderHome();
     if (G.current === 'inv') G.renderInv();

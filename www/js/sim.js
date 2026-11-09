@@ -27,15 +27,36 @@
   scene.add(new THREE.HemisphereLight(0xffffff, 0x555566, 0.85));
   const keyLight = new THREE.DirectionalLight(0xffffff, 0.75);
   keyLight.position.set(3, 5, 4);
+  // arkadan dolgu ışığı: kenarlar parlasın
+  const rim = new THREE.DirectionalLight(0xbfd4ff, 0.45);
+  rim.position.set(-4, 2, -3);
+  camera.add(rim);
   camera.add(keyLight);
   const root = new THREE.Group();
   scene.add(root);
 
-  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.55 });
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.42, metalness: 0.05 });
   const stickerMats = {};
-  FACES.forEach(f => (stickerMats[f.key] = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.32 })));
-  const bodyGeo = new THREE.BoxGeometry(0.98, 0.98, 0.98);
-  const stickerGeo = new THREE.ShapeGeometry(roundedSquare(0.84, 0.13), 5);
+  // Cilalı plastik çıkartma
+  const glossy = (opts) => new THREE.MeshPhysicalMaterial(Object.assign({ roughness: 0.24, clearcoat: 1, clearcoatRoughness: 0.12 }, opts));
+  FACES.forEach(f => (stickerMats[f.key] = glossy({ color: 0xffffff })));
+  // Yuvarlak kenarlı parça (gerçek küplerdeki gibi)
+  function roundedBox(size, r, seg) {
+    const g = new THREE.BoxGeometry(size, size, size, seg, seg, seg);
+    const pos = g.attributes.position, v = new THREE.Vector3(), c = new THREE.Vector3(), inner = size / 2 - r;
+    const cl = (x) => Math.max(-inner, Math.min(inner, x));
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i);
+      c.set(cl(v.x), cl(v.y), cl(v.z));
+      const d = v.clone().sub(c);
+      if (d.lengthSq() > 1e-9) v.copy(c).add(d.normalize().multiplyScalar(r));
+      pos.setXYZ(i, v.x, v.y, v.z);
+    }
+    g.computeVertexNormals();
+    return g;
+  }
+  const bodyGeo = roundedBox(0.98, 0.08, 4);
+  const stickerGeo = new THREE.ShapeGeometry(roundedSquare(0.82, 0.14), 6);
   function roundedSquare(s, r) {
     const h = s / 2, sh = new THREE.Shape();
     sh.moveTo(-h + r, -h); sh.lineTo(h - r, -h); sh.quadraticCurveTo(h, -h, h, -h + r);
@@ -362,7 +383,7 @@
   logoCanvas.width = logoCanvas.height = 256;
   const logoTex = new THREE.CanvasTexture(logoCanvas);
   logoTex.repeat.set(1 / 0.84, 1 / 0.84); logoTex.offset.set(0.5, 0.5);
-  const logoMat = new THREE.MeshStandardMaterial({ map: logoTex, roughness: 0.32 });
+  const logoMat = glossy({ map: logoTex });
   let logoOn = false;
   function paintLogo(pal, text) {
     const c = logoCanvas.getContext('2d');

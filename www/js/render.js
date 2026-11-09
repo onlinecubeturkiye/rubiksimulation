@@ -28,22 +28,53 @@
     return { top, left, right, hex };
   }
 
+  // Yuvarlak köşeli dörtgen (izometrik yüzeyde çıkartma)
+  function roundQuad(ctx, q, t) {
+    const L = (a, b, k) => lerp(a, b, k);
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      const p = q[i], prev = q[(i + 3) % 4], next = q[(i + 1) % 4];
+      const a = L(p, prev, t), b = L(p, next, t);
+      if (i === 0) ctx.moveTo(a[0], a[1]); else ctx.lineTo(a[0], a[1]);
+      ctx.quadraticCurveTo(p[0], p[1], b[0], b[1]);
+    }
+    ctx.closePath();
+  }
+  // Parlak çıkartma: renk geçişi + sol üstte ışık yansıması
+  function sticker(ctx, q, col, tint) {
+    const gr = ctx.createLinearGradient(q[0][0], q[0][1], q[2][0], q[2][1]);
+    gr.addColorStop(0, shade(col, tint + 0.2));
+    gr.addColorStop(0.55, shade(col, tint));
+    gr.addColorStop(1, shade(col, tint - 0.12));
+    roundQuad(ctx, q, 0.26);
+    ctx.fillStyle = gr; ctx.fill();
+    // ışık yansıması
+    const hq = [lerp(q[0], q[2], 0.08), lerp(lerp(q[0], q[1], 0.6), q[2], 0.08), lerp(lerp(q[0], q[1], 0.6), lerp(q[3], q[2], 0.6), 0.3), lerp(lerp(q[0], q[3], 0.55), q[2], 0.08)];
+    ctx.save(); ctx.globalAlpha = 0.28;
+    roundQuad(ctx, hq, 0.4); ctx.fillStyle = '#ffffff'; ctx.fill();
+    ctx.restore();
+  }
+
   function drawCube(ctx, cx, cy, s, n, pal, cuts) {
     const f = cubeFaces(cx, cy, s);
-    poly(ctx, f.hex, pal.body, pal.body, s * 0.09);
+    // gövde: kalın, yuvarlak köşeli; altı biraz koyu
+    poly(ctx, f.hex, pal.body, pal.body, s * 0.11);
+    const bg = ctx.createLinearGradient(cx, cy - s, cx, cy + s);
+    bg.addColorStop(0, 'rgba(255,255,255,0.10)'); bg.addColorStop(1, 'rgba(0,0,0,0.25)');
+    poly(ctx, f.hex, bg);
     cuts = cuts || Array.from({ length: n + 1 }, (_, i) => i / n);
-    const g = 0.035 / Math.max(1, n / 3) + 0.01;
-    const faces = [[f.top, pal.U, 0.1], [f.left, pal.F, 0], [f.right, pal.R, -0.16]];
+    const g = 0.04 / Math.max(1, n / 3) + 0.012;
+    const faces = [[f.top, pal.U, 0.1], [f.left, pal.F, 0], [f.right, pal.R, -0.18]];
     for (const [c, col, sh] of faces) {
       for (let i = 0; i < cuts.length - 1; i++) for (let j = 0; j < cuts.length - 1; j++) {
         const u0 = cuts[i] + g, u1 = cuts[i + 1] - g, v0 = cuts[j] + g, v1 = cuts[j + 1] - g;
         const tint = pal.mirror ? sh + ((i * 7 + j * 3) % 5 - 2) * 0.04 : sh;
-        poly(ctx, [bil(c, u0, v0), bil(c, u1, v0), bil(c, u1, v1), bil(c, u0, v1)], shade(col, tint));
+        sticker(ctx, [bil(c, u0, v0), bil(c, u1, v0), bil(c, u1, v1), bil(c, u0, v1)], col, tint);
       }
     }
-    // parlama
-    ctx.save(); ctx.globalAlpha = 0.18;
-    poly(ctx, [bil(f.top, 0.05, 0.05), bil(f.top, 0.55, 0.05), bil(f.top, 0.05, 0.4)], '#ffffff');
+    // gövde kenarında ince ışık çizgisi (üst kenarlar)
+    ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = Math.max(1, s * 0.018); ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(f.hex[5][0], f.hex[5][1]); ctx.lineTo(f.hex[0][0], f.hex[0][1]); ctx.lineTo(f.hex[1][0], f.hex[1][1]); ctx.stroke();
     ctx.restore();
   }
 
@@ -71,7 +102,18 @@
       const P = (i, j) => [a[0] + (b[0] - a[0]) * i / n + (c[0] - b[0]) * j / n, a[1] + (b[1] - a[1]) * i / n + (c[1] - b[1]) * j / n];
       const tri = (p, q, r) => {
         const m = [(p[0] + q[0] + r[0]) / 3, (p[1] + q[1] + r[1]) / 3], k = 0.8;
-        poly(ctx, [p, q, r].map(x => [m[0] + (x[0] - m[0]) * k, m[1] + (x[1] - m[1]) * k]), shade(col, sh));
+        const t = [p, q, r].map(x => [m[0] + (x[0] - m[0]) * k, m[1] + (x[1] - m[1]) * k]);
+        // yuvarlak köşeli üçgen + renk geçişi + parlama
+        ctx.beginPath();
+        for (let i = 0; i < 3; i++) {
+          const a = lerp(t[i], t[(i + 2) % 3], 0.22), b = lerp(t[i], t[(i + 1) % 3], 0.22);
+          if (!i) ctx.moveTo(a[0], a[1]); else ctx.lineTo(a[0], a[1]);
+          ctx.quadraticCurveTo(t[i][0], t[i][1], b[0], b[1]);
+        }
+        ctx.closePath();
+        const gr = ctx.createLinearGradient(t[0][0], t[0][1], m[0], m[1] + (m[1] - t[0][1]));
+        gr.addColorStop(0, shade(col, sh + 0.2)); gr.addColorStop(1, shade(col, sh - 0.1));
+        ctx.fillStyle = gr; ctx.fill();
       };
       for (let i = 0; i < n; i++) for (let j = 0; j <= i; j++) {
         tri(P(i, j), P(i + 1, j), P(i + 1, j + 1));

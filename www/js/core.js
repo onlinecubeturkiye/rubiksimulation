@@ -96,6 +96,14 @@
 
   // ---------- Jeton ve deneyim ----------
   G.addCoins = function (n) { G.S.coins += n; if (n > 0) window.Sound.coin(); };
+  // Jeton sayacının yanında kısa süre "-250" / "+40" gösterir
+  G.coinFloat = function (n) {
+    const res = $('coins') && $('coins').parentElement;
+    if (!res || !n) return;
+    const f = h('span', 'cfloat' + (n < 0 ? ' neg' : ''), (n > 0 ? '+' : '') + n);
+    res.appendChild(f);
+    setTimeout(() => f.remove(), 1400);
+  };
   G.xpNeed = (lv) => 100 + 60 * (lv - 1);
   G.addXP = function (n) {
     const S = G.S;
@@ -149,7 +157,10 @@
     }
   }
   G.statValue = statValue;
+  // Paket/kutu açılırken başarım ödülü verilmez; açılış bitince verilir (jeton sayacı karışmasın)
+  G.holdRewards = false;
   function checkAchievements() {
+    if (G.holdRewards) return;
     for (const a of D.ACHIEVEMENTS) {
       if (G.S.ach[a.id] || statValue(a.stat) < a.target) continue;
       G.S.ach[a.id] = true;

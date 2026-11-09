@@ -791,3 +791,37 @@ main:has(.tab-home:not([hidden])) { display: flex; flex-direction: column; }
 .pack-art { z-index: 1; filter: drop-shadow(0 4px 0 rgba(11,16,51,0.35)); }
 .pack-logo, .pack-title { z-index: 4; }
 .pack-title { text-shadow: var(--outline), 0 6px 0 rgba(11,16,51,0.4); }
+
+/* ===== v2.6 ===== */
+/* jeton değişimi */
+.res { overflow: visible; }
+.cfloat { position: absolute; right: 6px; top: 100%; font-family: var(--font-display); font-size: 1rem; color: var(--green); text-shadow: var(--outline); animation: cfloat 1.4s ease-out forwards; pointer-events: none; z-index: 5; }
+.cfloat.neg { color: #ff8a96; }
+@keyframes cfloat { from { transform: translateY(-6px); opacity: 0; } 15% { opacity: 1; transform: translateY(2px); } to { transform: translateY(18px); opacity: 0; } }
+/* Ana ekran: küçük ekranlarda üst üste binme ve yatay taşma olmasın */
+.tab-home { overflow-x: clip; }
+.home-stage { min-height: 0; }
+.showcase { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: auto; min-height: 0; }
+.sc-rays { width: min(330px, 92vw); height: min(330px, 92vw); margin: 0; left: 50%; top: 42%; transform: translate(-50%, -50%); animation: spinC 22s linear infinite; }
+@keyframes spinC { to { transform: translate(-50%, -50%) rotate(360deg); } }
+.sc-stage { position: relative; width: clamp(120px, 24vh, 200px); aspect-ratio: 1 / 1.08; }
+.sc-stage canvas, .showcase .sc-stage canvas { position: absolute; left: 0; top: 0; width: 100%; height: auto; aspect-ratio: 1; margin: 0; }
+.sc-plat { left: 6%; right: 6%; width: auto; margin: 0; top: auto; bottom: 0; height: 24%; }
+.sc-name { position: static; transform: none; top: auto; bottom: auto; left: auto; }
+.event-banner b, .event-banner small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.play-main, .play-side { min-width: 0; }
+.play-main small, .play-side small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+@media (max-height: 760px) {
+  .tab-home { gap: 8px; }
+  .season-bar { padding: 5px 10px; }
+  .s-tier { width: 32px; height: 32px; font-size: 1rem; }
+  .slot-chest { min-height: 82px; }
+  .play-main span { font-size: 1.8rem; }
+  .side-btn svg { width: 32px; height: 32px; }
+  .home-side { gap: 8px; }
+}
+/* Etkileşimli rehber: yalnız parlayan yere dokunulur (dokunma süzgeci JS'de) */
+.tut.guide { pointer-events: none; }
+.tut.guide .tut-bubble { pointer-events: auto; }
+.tut.guide .tut-hole { animation: holePulse 1s ease-in-out infinite; }
+@keyframes holePulse { 50% { border-color: #fff; box-shadow: 0 0 0 9999px rgba(6, 10, 36, 0.78), 0 0 22px 6px rgba(255,201,40,0.8); } }

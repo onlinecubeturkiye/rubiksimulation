@@ -44,6 +44,10 @@
     $('b-auto').textContent = 'Oto: Kapalı';
     $('b-quit').textContent = cfg.mode === 'pvp' ? 'Bitir' : 'Pes et';
     B.A.energy = 2; B.B.energy = 2;
+    // İlk savaş: Küpi ilk 3 turu adım adım gösterir
+    B.guided = cfg.mode === 'stage' && !(G.S.tut && G.S.tut.guided); B.gTurn = 0;
+    // Rehberli savaş 3 tur sürsün diye rakip daha dayanıklı ama daha zayıf vurur
+    if (B.guided) B.B.list.forEach(f => { f.max = f.hp = Math.round(f.max * 2.4); f.atk = Math.max(1, Math.round(f.atk * 0.6)); });
     if (cfg.mode !== 'pvp' && G.event().id === 'pyramid') B.A.list.forEach(f => { if (f.def.type === 'pyramid') f.atk = Math.round(f.atk * 1.25); });
     $('battle').hidden = false;
     $('power').hidden = true; $('defend').hidden = true; $('b-acts').hidden = false; $('emote-pop').hidden = true;
@@ -78,11 +82,12 @@
     let act;
     if (isHuman(side)) {
       if (B.mode === 'pvp') Snd.turn();
-      else if (side === 'A') {
+      else if (side === 'A' && !B.guided) {
         G.tip('atk', '#act-atk', 'Sıra sende! Saldır’a bas.');
         if (canSkill('A') && B.turns > 1) G.tip('skill', '#act-skill', 'Enerjin yetiyor! Yetenekler enerji harcar, doğru anı seç.');
       }
       B.turns = (B.turns || 0) + 1;
+      if (B.guided && side === 'A') guideTurn();
       act = await new Promise(res => (B.resolve = res));
       B.resolve = null;
       if (B && !B.over && powerOn() && (act.kind === 'atk' || act.kind === 'skill') && isHuman(side)) act.power = await powerBar(side);
@@ -114,16 +119,44 @@
     return { kind: 'atk' };
   }
 
+  // Rehberli ilk savaş: 1. tur saldırı, 2. tur enerji + yetenek, 3. tur küp değiştirme
+  async function guideTurn() {
+    const t = B.gTurn++;
+    await G.wait(250);
+    if (!B || B.over || !B.resolve) return;
+    if (t === 0) {
+      await G.guide('#act-atk', 'Saldır!', 'Sıra sende. Saldır düğmesine dokun.');
+    } else if (t === 1) {
+      await G.guide('#energy', 'Enerji', 'Bu mor çubuk enerjin. Her turda 2 dolar. Yetenekler enerji harcar, düğmenin köşesinde kaç enerji istediği yazar.', true);
+      if (!B || !B.resolve) return;
+      if (canSkill('A')) await G.guide('#act-skill', 'Yetenek', `Enerjin yetiyor! “${D.SKILLS[cur('A').def.skill].name}” yeteneğini kullan.`);
+      else await G.guide('#act-atk', 'Saldır!', 'Enerjin henüz yetmiyor. Bu tur saldır, enerji biriksin.');
+    } else if (t === 2) {
+      const bench = document.querySelector('#b-A .bench-btn:not(.on):not(.ko):not(:disabled)');
+      if (bench) await G.guide('#b-A .bench-btn:not(.on):not(.ko):not(:disabled)', 'Küp değiştir', 'Yedek küplerine dokunarak sahadaki küpü değiştirebilirsin. Rakibe karşı avantajlı türü seç! Şimdi dene.');
+      else await G.guide('#act-atk', 'Saldır!', 'Bir saldırı daha!');
+      endGuide();
+    }
+  }
+  function endGuide() {
+    if (!B || !B.guided) return;
+    B.guided = false;
+    G.S.tut = Object.assign(G.S.tut || {}, { guided: true, atk: true, power: true, defend: true, skill: true });
+    G.save();
+    setTimeout(() => G.coach('#b-acts', 'Harika! Artık gerisi sende. Kazanmaya bak!', 3500), 900);
+  }
+
   // Güç çubuğu: ibre gidip gelir, doğru anda dokunan daha çok vurur.
   function powerBar(side) {
     return new Promise(res => {
       const el = $('power'), needle = el.querySelector('.power-needle');
       el.hidden = false; $('b-acts').hidden = true;
-      G.tip('power', '#power', 'İbre yeşilin ORTASINDAYKEN dokun: MÜKEMMEL vuruş!', 4500);
+      if (!B.guided) G.tip('power', '#power', 'İbre yeşilin ORTASINDAYKEN dokun: MÜKEMMEL vuruş!', 4500);
       const combo = B.combo[side];
       $('power-combo').textContent = combo > 1 ? `Kombo ×${combo}` : '';
       el.querySelectorAll('.power-result').forEach(x => x.remove());
-      const period = Math.max(600, 1100 - combo * 70);
+      let period = Math.max(600, 1100 - combo * 70);
+      if (B.guided && !B.gPower) { B.gPower = true; period = 1800; G.guide('#power', 'Güç çubuğu', 'İbre YEŞİLİN ORTASINA gelince bu kutuya dokun: MÜKEMMEL vuruş, 1,5 kat hasar!'); }
       const t0 = performance.now();
       let raf, done = false, p = 0;
       const step = (now) => {
@@ -138,6 +171,7 @@
         if (done) return; done = true;
         cancelAnimationFrame(raf);
         el.onpointerdown = null; window.removeEventListener('keydown', key);
+        G.guideHide();
         const dist = Math.abs(p - 0.5);
         let m, txt;
         if (dist < 0.05) { m = 1.5; txt = 'MÜKEMMEL!'; }
@@ -166,13 +200,16 @@
       const el = $('defend'), btn = $('def-btn'), ring = $('def-ring');
       el.hidden = false; $('b-acts').hidden = true;
       el.querySelectorAll('.def-result').forEach(x => x.remove());
-      G.tip('defend', '#defend', 'Halka mavi kalkana değdiği AN dokun: hasar yarıya iner!', 4500);
-      const T = 750 + Math.random() * 550, t0 = performance.now();
+      if (!B.guided) G.tip('defend', '#defend', 'Halka mavi kalkana değdiği AN dokun: hasar yarıya iner!', 4500);
+      let T = 750 + Math.random() * 550;
+      if (B.guided && !B.gDef) { B.gDef = true; T = 1900; G.guide('#defend', 'Savun!', 'Rakip saldırıyor! Beyaz halka küçülüp mavi düğmeye değdiği AN düğmeye bas: hasar yarıya iner.'); }
+      const t0 = performance.now();
       const anim = ring.animate([{ transform: 'scale(2.1)', opacity: 0.35 }, { transform: 'scale(1)', opacity: 1, offset: T / (T + 260) }, { transform: 'scale(0.8)', opacity: 0 }], { duration: T + 260, fill: 'forwards' });
       let done = false;
       const finish = (m, txt) => {
         if (done) return; done = true;
         anim.cancel(); btn.onpointerdown = null; window.removeEventListener('keydown', key);
+        G.guideHide();
         el.querySelector('.def-wrap').appendChild(h('div', 'def-result', txt));
         if (m < 1) { Snd.star(1); window.FX.burstAt(btn, '#2e8cff', 18, 5); }
         setTimeout(() => { el.hidden = true; $('b-acts').hidden = false; res(m); }, 380);
@@ -264,6 +301,7 @@
   }
 
   function end(wonA) {
+    if (B.guided) { G.guideHide(); endGuide(); }
     B.over = true;
     const res = { won: wonA, koA: B.A.list.filter(f => f.hp <= 0).length, sizeA: B.A.list.length, perfects: B.perfects.A, maxCombo: B.maxCombo, crowns: B.crowns };
     if (wonA || B.mode === 'pvp') setTimeout(() => window.FX.confetti(), 350);

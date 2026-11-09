@@ -74,7 +74,7 @@
     db.disabled = bought;
     db.onclick = () => {
       if (S.coins < deal.price) return G.toast(`Yeterli jeton yok (${deal.price} gerekli)`);
-      S.coins -= deal.price; S.dealDay = G.dayIndex();
+      S.coins -= deal.price; S.dealDay = G.dayIndex(); G.coinFloat(-deal.price);
       const got = G.addCube(deal.def.id);
       G.save(); render();
       G.toast(got.isNew ? `${deal.def.name} koleksiyonuna eklendi!` : `${deal.def.name} seviye ${got.lvl} oldu`);
@@ -186,6 +186,7 @@
     const price = priceOf(pack);
     if (G.S.coins < price) { G.toast(`Yeterli jeton yok (${price} gerekli)`); return; }
     G.S.coins -= price;
+    G.coinFloat(-price);
     G.save();
     G.openPack(pack, true);
   }
@@ -193,6 +194,7 @@
   // ---------- Paket açma ----------
   let opening = null;
   G.openPack = function (pack, paid) {
+    G.holdRewards = true;
     const def = G.rollPack(pack);
     const got = G.addCube(def.id);
     G.bump('packs'); G.addXP(10);
@@ -247,6 +249,7 @@
     opening.stage = 'done';
   }
   G.closeOpener = function () {
+    G.holdRewards = false; G.save();
     $('opener').hidden = true; opening = null;
     if (G.current === 'shop') render();
     if (G.current === 'inv') renderInv();
