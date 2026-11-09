@@ -1,6 +1,6 @@
 {
   "name": "kup-arena",
-  "version": "2.0.0",
+  "version": "2.9.0",
   "private": true,
   "description": "Küp Arena: paket aç, küp topla, savaş, çöz.",
   "scripts": {
@@ -9,12 +9,12 @@
     "android:assets": "npx capacitor-assets generate --android --iconBackgroundColor \"#1a0f3a\" --splashBackgroundColor \"#1a0f3a\""
   },
   "dependencies": {
-    "@capacitor/android": "^6.1.2",
-    "@capacitor/core": "^6.1.2",
-    "@capacitor/app": "^6.0.1"
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/app": "^8.1.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.1.2",
+    "@capacitor/cli": "^8.6.0",
     "@capacitor/assets": "^3.0.5"
   }
 }

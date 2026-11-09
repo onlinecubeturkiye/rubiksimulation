@@ -895,3 +895,6 @@ main:has(.tab-home:not([hidden])) { display: flex; flex-direction: column; }
 .chest-card div, .streak-card div { grid-template-columns: minmax(0, 1fr); }
 .card.in-team { overflow: visible; box-shadow: 0 0 0 2px var(--gold), 0 4px 0 var(--ink); }
 .card.in-team::after { top: -8px; bottom: auto; left: 50%; right: auto; transform: translateX(-50%); z-index: 3; line-height: 1.3; }
+
+/* ===== v2.9: Android 15+ kenardan kenara ekran (durum çubuğu altında kalmasın) ===== */
+.top { padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
