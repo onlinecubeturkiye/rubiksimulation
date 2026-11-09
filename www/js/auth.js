@@ -48,8 +48,19 @@
     } catch (e) { /* çevrimdışıysa cihazdaki kayıtla devam */ }
     pulling = false;
     // Rubik Academy profilindeki adı al (users/{uid} herkese açık okunur)
+    // Rubik Academy profili (users/{uid}): herkese açık ad. Siteyi hiç açmamış oyuncuda bu belge olmayabilir;
+    // o zaman oyun, sitenin kurallarının izin verdiği alanlarla (name, joined, seen) belgeyi kendisi oluşturur.
     let raName = u.displayName || '';
-    try { const p = await db.collection('users').doc(u.uid).get(); if (p.exists && p.data().name) raName = p.data().name; } catch (e) {}
+    try {
+      const pref = db.collection('users').doc(u.uid), p = await pref.get();
+      if (p.exists && p.data().name) raName = p.data().name;
+      else if (!p.exists) {
+        const fallback = (G.S.name && G.S.name !== 'Oyuncu') ? G.S.name : (u.displayName || (u.email || '').split('@')[0] || 'Küpçü');
+        raName = String(fallback).trim().slice(0, 24) || 'Küpçü';
+        const t = Date.now();
+        await pref.set({ name: raName, joined: t, seen: t });
+      }
+    } catch (e) {}
     G.S.account = { uid: u.uid, email: u.email || '', name: raName };
     if (G.S.name === 'Oyuncu' && raName) G.S.name = raName.slice(0, 16);
     G.save();

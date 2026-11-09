@@ -20,7 +20,7 @@ Oyun, sitenin Firebase projesini (`rubikacademydb`) **yalnızca hesap bağlamak 
   - Bu, mevcut `users/{uid}/kv/{key}` kuralına birebir uyar (anahtar `^[a-z0-9-]{1,64}$`, alanlar yalnızca `v` ve `t`).
   - Sitenin `SYNC_KEYS` listesinde `kup-arena` **yok**, olmasın: site bu belgeyi localStorage'a çekmesin.
   - "Tüm verilerimi sil" ve hesap silme zaten tüm `kv` belgelerini sildiği için Küp Arena kaydı da silinir. Bu doğru davranış.
-- **Oyuncu adı:** Oyun, oyuncunun adını herkese açık `users/{uid}.name` alanından okur.
+- **Oyuncu adı:** Oyun, oyuncunun adını herkese açık `users/{uid}.name` alanından okur. Belge yoksa (oyuncu siteyi hiç açmadıysa) oyun belgeyi `{ name, joined, seen }` alanlarıyla kendisi oluşturur. `name` en fazla 24 karakterdir; `joined` ve `seen` milisaniye cinsinden tam sayıdır.
 - **Hesap silme:** Oyun içinde yalnızca "Küp Arena kaydımı sil" var. RA ID hesabının tamamını silmek için oyun `https://rubikacademy.fun/ayarlar` sayfasına yönlendirir ("Hesabımı sil"). Bu sayfa ve düğme yerinde kalmalı (Google Play hesap silme kuralı için gerekli).
 - **API anahtarı:** Şu an kısıtsız; `https://localhost` (uygulamanın adresi) isteklerini kabul ediyor. İleride anahtara referrer kısıtı eklenirse `https://localhost/*` de izinli olmalı. Authentication → Settings → Authorized domains içinde `localhost` kalmalı.
 
@@ -79,6 +79,10 @@ Küp Arena bölümü eklenmeli:
 - **Amacı:** İlerlemenin cihazlar arasında kaybolmaması.
 - **Silme:** Oyunda "Küp Arena kaydımı sil", tüm hesap için `/ayarlar` → "Hesabımı sil".
 - **Çocuklar:** Oyuncuların çoğu çocuk olabilir. KVKK ve Google Play aile politikası açısından veli onayı metni gözden geçirilmeli.
+
+## Durum
+
+Site tarafı yayında (rubikacademy PR #219): `/kup-arena`, `/kup-arena/baglan`, ana sayfa kartı, gizlilik bölümü ve profil özeti hazır. Profil özeti `level`, `trophies`, `stats.wins`, `inv` ve `adv.stars` alanlarını okur; bu alan adları değişirse siteye haber verilmeli.
 
 ## Test için
 
