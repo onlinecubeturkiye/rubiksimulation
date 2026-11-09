@@ -361,7 +361,7 @@
         <div><span class="label">Can</span><b>${st.hp}${next ? `<small> → ${next.hp}</small>` : ''}</b></div>
         <div><span class="label">Saldırı</span><b>${st.atk}${next ? `<small> → ${next.atk}</small>` : ''}</b></div>
       </div>
-      <div class="skill"><b>${esc(sk.name)}</b>: ${esc(sk.desc)}<br><span class="note">${ty.name} ${G.ROLE[G.typeOf(def)].name}: ${G.ROLE[G.typeOf(def)].range} saldırır. ${D.TYPES[ty.beats].name} türüne karşı güçlü.</span></div>
+      <div class="skill"><b>${esc(sk.name)}</b>: ${esc(sk.desc)}<br><span class="note">${ty.name} ${G.ROLE[G.typeOf(def)].name}: ${G.ROLE[G.typeOf(def)].range} saldırır. ${G.ROLE[G.typeOf(def)].passive}. ${D.TYPES[ty.beats].name} türüne karşı güçlü.</span></div>
       ${G.isHolo(def.id) ? '<p class="holo-txt">✨ Parlak sürüm sende</p>' : ''}
       <button class="link-btn" id="fav-btn">${(G.S.prof && (G.S.prof.fav || []).includes(def.id)) ? '★ Profil vitrininden çıkar' : '☆ Profil vitrinine koy'}</button>
       <p class="note">${have} adet var. Kopyalar seviyeyi bedava yükseltir.</p>`,

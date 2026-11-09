@@ -1223,3 +1223,41 @@ body::before { background: radial-gradient(140% 90% at 50% 40%, transparent 60%,
 .town-cap { display: grid; justify-content: start; gap: 0; }
 .sc-plat { background: radial-gradient(ellipse at 50% 35%, #8fd8ff, #3d8bff 60%, #2a4fc8); box-shadow: 0 7px 0 #1f3a9a, 0 0 0 2px rgba(255,255,255,0.6), 0 0 34px rgba(143,216,255,0.7); }
 .sc-rays { background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0.08) 70%, transparent); }
+
+/* ===== v3.2: tahta olayları, patron öfkesi, tür özellikleri ===== */
+.cell.ice::before { background: linear-gradient(135deg, rgba(220,245,255,0.85), rgba(150,210,255,0.6)); box-shadow: inset 0 0 0 2px #e6f8ff, 0 0 10px rgba(180,230,255,0.8); }
+.cell.ice::after { content: "❄"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: calc(var(--rh) * 0.4); color: #fff; opacity: 0.9; }
+.cell.super::before { background: radial-gradient(circle, rgba(255,210,63,0.75), rgba(255,140,40,0.3) 70%); animation: blip 0.8s ease-in-out infinite; }
+.tok.rage canvas { filter: drop-shadow(0 0 10px #ff2e3e) drop-shadow(0 0 4px #ff8a1f) saturate(1.4); animation: rageShake 0.6s ease-in-out infinite; }
+@keyframes rageShake { 25% { transform: scale(1.12) rotate(-3deg); } 75% { transform: scale(1.12) rotate(3deg); } }
+.b-event { position: absolute; left: 50%; top: 38%; z-index: 8; width: min(86%, 320px) !important; transform: translateX(-50%); display: grid; justify-items: center; gap: 2px; text-align: center;
+  padding: 10px 14px; border-radius: 16px; background: rgba(20,24,80,0.92); box-shadow: 0 0 0 2px var(--st-y), 0 12px 30px rgba(0,0,0,0.5); animation: evPop 2.6s ease both; pointer-events: none; }
+.b-event b { font-family: var(--font-display); font-size: 1.3rem; color: var(--st-y); }
+.b-event small { font-size: 0.78rem; color: #dfe4ff; }
+.b-event.ice { box-shadow: 0 0 0 2px #bfeaff, 0 12px 30px rgba(0,0,0,0.5); } .b-event.ice b { color: #bfeaff; }
+.b-event.heal b { color: #7dffa6; } .b-event.rage { box-shadow: 0 0 0 2px #ff4757, 0 12px 30px rgba(0,0,0,0.5); } .b-event.rage b { color: #ff7b86; }
+@keyframes evPop { 0% { opacity: 0; transform: translateX(-50%) scale(0.6); } 12% { opacity: 1; transform: translateX(-50%) scale(1.05); } 18% { transform: translateX(-50%) scale(1); } 85% { opacity: 1; } 100% { opacity: 0; } }
+.b-sel .b-pass { color: #9fe8ff; font-size: 0.64rem; }
+.puz-card { position: relative; width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; text-align: left; cursor: pointer; color: #fff; font: inherit;
+  background: linear-gradient(120deg, #7b4dff, #c040ff); border: 1px solid rgba(255,255,255,0.25); border-radius: 18px; padding: 10px 12px; box-shadow: 0 6px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3); }
+.puz-ico { font-size: 1.7rem; }
+.puz-card div { display: grid; min-width: 0; }
+.puz-card b { font-family: var(--font-display); font-size: 1.05rem; }
+.puz-card small { font-size: 0.7rem; color: #f0e6ff; }
+.puz-dots { display: flex; gap: 4px; }
+.puz-dots i { width: 12px; height: 12px; border-radius: 4px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.4); }
+.puz-dots i.on { background: var(--st-y); }
+.puz-list { display: grid; gap: 8px; width: 100%; }
+.puz-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; text-align: left; background: rgba(255,255,255,0.06); border-radius: 14px; padding: 8px; }
+.puz-row.done { box-shadow: inset 0 0 0 2px rgba(46,212,122,0.6); }
+.puz-row div:not(.puz-team) { display: grid; gap: 2px; min-width: 0; }
+.puz-row small { font-size: 0.68rem; color: var(--dim); }
+.puz-team { display: flex; }
+.puz-team canvas { width: 36px; height: 36px; margin-right: -8px; }
+.club-tabs { grid-template-columns: repeat(5, 1fr); }
+.club-tabs button { font-size: 0.72rem; padding-inline: 2px; }
+.cw-head { display: grid; gap: 4px; background: linear-gradient(120deg, rgba(255,71,87,0.3), rgba(255,138,31,0.25)); border-radius: 14px; padding: 10px 12px; }
+.cw-head b { font-family: var(--font-display); font-size: 1.1rem; }
+.cw-head small { font-size: 0.72rem; color: #ffe6d6; }
+.cw-num { font-family: var(--font-display); color: var(--st-y); }
+#cw-claim { width: 100%; }

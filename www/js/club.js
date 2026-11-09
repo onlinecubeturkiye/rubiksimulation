@@ -38,7 +38,7 @@
     Snd.click();
     if (needLogin()) return;
     const c = G.S.club;
-    if (c && c.code) return openMine('uye');
+    if (c && c.code) return openMine('savas');
     loading('Kulüpler');
     try {
       const snap = await fs().collection('kaClubs').orderBy('ts', 'desc').limit(15).get();
@@ -89,12 +89,22 @@
     await writeMember(code);
     G.S.club = { code, name }; G.save();
     G.toast(`${name} kulübüne hoş geldin!`);
-    openMine('uye');
+    openMine('savas');
   }
+  const wk = () => Math.floor(G.dayIndex() / 7);
+  const cwWins = () => (G.S.cw && G.S.cw.wk === wk() ? G.S.cw.w : 0);
   function writeMember(code) {
     const S = G.S;
-    return clubRef(code).collection('m').doc(me().uid).set({ name: myName(), lvl: S.level, tr: S.trophies, title: G.myTitle().slice(0, 24), ts: ts() });
+    return clubRef(code).collection('m').doc(me().uid).set({ name: myName(), lvl: S.level, tr: S.trophies, title: G.myTitle().slice(0, 24), w: cwWins(), wk: wk(), ts: ts() });
   }
+  // Kulüp savaşı: her galibiyet kulübün haftalık hedefine sayılır
+  let cwT = 0;
+  G.clubWin = function () {
+    const S = G.S;
+    if (!S.cw || S.cw.wk !== wk()) S.cw = { wk: wk(), w: 0 };
+    S.cw.w++;
+    if (S.club && S.club.code && me() && fs()) { clearTimeout(cwT); cwT = setTimeout(() => writeMember(S.club.code).catch(() => {}), 4000); }
+  };
 
   // ---------- Kulübüm ----------
   let live = null;
@@ -111,7 +121,7 @@
       writeMember(c.code).catch(() => {});
     } catch (e) { return fail(c.name, e); }
     const owner = club.owner === me().uid;
-    const tabs = [['uye', 'Üyeler'], ['sohbet', 'Sohbet'], ['bagis', 'Bağış'], ['takas', 'Takas']];
+    const tabs = [['savas', 'Savaş'], ['uye', 'Üyeler'], ['sohbet', 'Sohbet'], ['bagis', 'Bağış'], ['takas', 'Takas']];
     const body = G.modal(club.name, `
       <div class="club-head"><span class="cl-badge big">${BADGES[club.badge] || '🧊'}</span><div><small>${esc(club.desc || '')}</small><span>Kod: <b>${c.code}</b> · Kurucu: ${esc(club.oName)}</span></div><button class="btn btn-small" id="cl-share">Davet et</button></div>
       <div class="seg club-tabs">${tabs.map(([k, n]) => `<button data-k="${k}" aria-pressed="${k === tab}">${n}</button>`).join('')}</div>
@@ -131,7 +141,27 @@
     const pane = $('cl-pane');
     if (!pane) return;
     pane.innerHTML = '<p class="note">Yükleniyor…</p>';
-    ({ uye: paneMembers, sohbet: paneChat, bagis: paneDonate, takas: paneTrade })[k](pane, club, owner).catch(e => { if ($('cl-pane')) pane.innerHTML = `<p>${esc(errText(e))}</p>`; });
+    ({ savas: paneWar, uye: paneMembers, sohbet: paneChat, bagis: paneDonate, takas: paneTrade })[k](pane, club, owner).catch(e => { if ($('cl-pane')) pane.innerHTML = `<p>${esc(errText(e))}</p>`; });
+  }
+
+  async function paneWar(pane) {
+    const code = G.S.club.code, w = wk();
+    const snap = await clubRef(code).collection('m').limit(MAX_MEMBERS).get();
+    const rows = snap.docs.map(d => Object.assign({ id: d.id }, d.data())).map(m => ({ name: m.name, w: m.wk === w ? (m.w || 0) : 0, me: m.id === me().uid }))
+      .sort((a, b) => b.w - a.w);
+    const total = rows.reduce((a, m) => a + m.w, 0), goal = Math.max(30, snap.size * 8);
+    const left = 7 - (G.dayIndex() % 7), got = G.S.cwClaim === w, done = total >= goal;
+    pane.innerHTML = `<div class="cw-head"><b>Kulüp Savaşı</b><small>Bu hafta kulüpçe ${goal} galibiyete ulaşın, herkes Kulüp Sandığı alsın! ${left} gün kaldı.</small>
+      <span class="bar"><i style="width:${Math.min(100, total / goal * 100)}%"></i></span><span class="cw-num">${total}/${goal} galibiyet</span></div>
+      <button class="btn ${done && !got ? 'btn-yellow' : ''}" id="cw-claim" ${done && !got ? '' : 'disabled'}>${got ? 'Sandığı aldın ✓' : done ? 'Kulüp Sandığını aç! (+400 jeton, Usta Paketi)' : 'Hedefe ulaşınca açılır'}</button>
+      <h4>Katkılar</h4><div class="cl-mems">${rows.map((m, i) => `<div class="cl-mem${m.me ? ' me' : ''}"><span class="cl-rank">${i + 1}</span><div><b>${esc(m.name)}</b></div><span class="cl-tr">⚔ ${m.w}</span></div>`).join('')}</div>
+      <p class="note">Macera, Kule, Arena ve bulmaca galibiyetlerin sayılır. Sayı birkaç saniye gecikebilir.</p>`;
+    $('cw-claim').onclick = () => {
+      if (G.S.cwClaim === w || !done) return;
+      G.S.cwClaim = w; G.addCoins(400); G.S.packs.usta++; G.save();
+      window.FX.confetti(140); G.toast('Kulüp Sandığı: +400 jeton ve Usta Paketi!');
+      openMine('savas');
+    };
   }
 
   async function paneMembers(pane, club, owner) {

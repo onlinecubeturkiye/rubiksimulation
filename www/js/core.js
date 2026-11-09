@@ -214,6 +214,7 @@
       return { coins: 0, html: lines.length ? bonusHtml(lines) : '' };
     }
     S.streak++; S.bestStreak = Math.max(S.bestStreak || 0, S.streak);
+    if (G.clubWin) G.clubWin();
     let coins = 0;
     if (res.perfects) { const c = res.perfects * 5; coins += c; lines.push([`Mükemmel vuruş ×${res.perfects}`, `+${c}`]); }
     if (S.streak >= 2) { const c = Math.min(S.streak, 10) * 5; coins += c; lines.push([`Galibiyet serisi ×${S.streak}`, `+${c}`]); }

@@ -1,4 +1,4 @@
-# Rubik Academy sitesi için istekler (Küp Arena v3.1)
+# Rubik Academy sitesi için istekler (Küp Arena v3.2)
 
 İki iş var: **1)** giriş sayfasını sadeleştirmek, **2)** kulüp ve takas için Firestore kurallarını eklemek.
 
@@ -46,9 +46,11 @@ Oyun iki yeni koleksiyon kullanıyor: `kaClubs` ve `kaTrades`. Aşağıdaki blo�
       match /m/{uid} {
         allow read: if true;
         allow create, update: if kaSigned() && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['name', 'lvl', 'tr', 'title', 'ts'])
+          && request.resource.data.keys().hasOnly(['name', 'lvl', 'tr', 'title', 'w', 'wk', 'ts'])
           && request.resource.data.name is string && request.resource.data.name.size() <= 24
           && request.resource.data.lvl is int && request.resource.data.tr is int
+          && request.resource.data.w is int && request.resource.data.w >= 0 && request.resource.data.w <= 5000
+          && request.resource.data.wk is int
           && request.resource.data.title is string && request.resource.data.title.size() <= 24
           && request.resource.data.ts == request.time;
         allow delete: if request.auth != null && (request.auth.uid == uid || kaClub().owner == request.auth.uid || isAdmin());
@@ -127,3 +129,25 @@ Bunlar tek alanlı otomatik dizinlerle çalışır, ek dizin gerekmemesi lazım.
 ### Not
 
 Kurallar eklenmeden önce oyundaki Kulüp ve Takas ekranları "Kulüp sunucusu henüz açılmadı" der, oyunun geri kalanı etkilenmez.
+
+---
+
+## 3) Oyunu siteden de oynanabilir yap: `/kup-arena/oyna/`
+
+Oyun tamamen statik (HTML + JS + CSS, derleme yok). Her yeni sürümde GitHub sürüm sayfasına web paketi konuyor:
+
+`https://github.com/onlinecubeturkiye/rubiksimulation/releases/latest/download/KupArena-Web.zip`
+
+Zip'in içi doğrudan `index.html`, `css/`, `js/`, `vendor/`, `fonts/` … (alt klasör yok). Tüm yollar göreli, yani alt klasörde sorunsuz çalışır.
+
+Yapılacaklar:
+
+1. **Senkron iş akışı:** Site reposuna `.github/workflows/kup-arena-web.yml` ekle. Günde birkaç kez (ör. `cron: '17 */6 * * *'`) ve elle (`workflow_dispatch`) çalışsın:
+   - zip'i indir (`curl -L -o web.zip <yukarıdaki adres>`),
+   - `kup-arena/oyna/` klasörünü silip zip'i oraya aç,
+   - değişiklik varsa commit edip pushla (`permissions: contents: write`).
+   Repo herkese açık olduğu için indirmek için anahtar gerekmez.
+2. **Sayfa kabuğu yok:** `kup-arena/oyna/index.html` oyunun kendi sayfası. Sitenin üst barı, alt barı, reklamları, duyuruları, `common.js` / `i18n.js` gibi site betikleri bu klasöre **eklenmesin**.
+3. **Service worker:** Sitenin `sw.js` dosyası `/kup-arena/oyna/` altını önbelleğe alıyorsa, oyunun eski sürümü takılı kalmasın diye bu yolu ağdan getirsin (network-first) ya da hiç önbelleğe almasın.
+4. **Firebase:** Oyun aynı Firebase projesini kullanıyor. Web'de Google girişi açılır pencereyle (popup) yapılıyor. `rubikacademy.fun` zaten yetkili alanlarda olduğu için ek ayar gerekmemeli.
+5. **Bağlantı:** `/kup-arena` tanıtım sayfasına "Tarayıcıda oyna" düğmesi koy → `/kup-arena/oyna/`.

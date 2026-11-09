@@ -65,6 +65,10 @@ jobs:
       - name: Pack store listing files
         run: cd store && zip -qr ../KupArena-Magaza.zip .
 
+      # Web sürümü: rubikacademy.fun/kup-arena/oyna/ bu dosyayı açıp yayınlar
+      - name: Pack web version
+        run: cd www && zip -qr ../KupArena-Web.zip .
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -83,6 +87,7 @@ jobs:
             KupArena.apk
             KupArena-GooglePlay.aab
             KupArena-Magaza.zip
+            KupArena-Web.zip
           body: |
             Telefona kurmak için aşağıdaki **KupArena.apk** dosyasını indir ve aç.
             İlk kurulumda "bilinmeyen kaynaklardan yükleme" izni istenebilir.

@@ -18,9 +18,9 @@
   };
   // Menzil: Küp yanındakine (dört yön), Piramit düz çizgide 2 kareye, Özel çevresindeki 8 kareye vurur
   const ROLE = {
-    kup: { name: 'Savaşçı', range: 'Yanındaki kareler', can: (dr, dc) => Math.abs(dr) + Math.abs(dc) === 1 },
-    piramit: { name: 'Nişancı', range: 'Düz çizgide 2 kare', can: (dr, dc) => (dr === 0 || dc === 0) && Math.abs(dr) + Math.abs(dc) <= 2 && (dr || dc) },
-    ozel: { name: 'Büyücü', range: 'Çevresindeki 8 kare', can: (dr, dc) => Math.max(Math.abs(dr), Math.abs(dc)) === 1 },
+    kup: { name: 'Savaşçı', range: 'Yanındaki kareler', passive: 'Kalkan duvarı: yanında dostu varsa %15 az hasar alır', can: (dr, dc) => Math.abs(dr) + Math.abs(dc) === 1 },
+    piramit: { name: 'Nişancı', range: 'Düz çizgide 2 kare', passive: 'Keskin nişan: engelin üstünden vurur, 2 kareden +%15 kritik', can: (dr, dc) => (dr === 0 || dc === 0) && Math.abs(dr) + Math.abs(dc) <= 2 && (dr || dc) },
+    ozel: { name: 'Büyücü', range: 'Çevresindeki 8 kare', passive: 'Destek aurası: çevresindeki dostlar %10 fazla vurur', can: (dr, dc) => Math.max(Math.abs(dr), Math.abs(dc)) === 1 },
   };
   G.ROLE = ROLE;
   const inRange = (a, d) => ROLE[typeKey(a)].can(d.r - a.r, d.c - a.c);
@@ -76,9 +76,12 @@
     // Oyuncunun parlak (holo) küpleri tahtada da parlar
     if (cfg.mode !== 'pvp') B.A.list.forEach(f => { f.holo = !!(G.S.holo && G.S.holo[f.def.id]); });
     place(B.A.list, 3); place(B.B.list, 0);
+    (cfg.posA || []).forEach((p, i) => { if (B.A.list[i]) { B.A.list[i].r = p[0]; B.A.list[i].c = p[1]; } });
+    (cfg.posB || []).forEach((p, i) => { if (B.B.list[i]) { B.B.list[i].r = p[0]; B.B.list[i].c = p[1]; } });
     // Güç kareleri: üstünde duran küp %30 fazla vurur
     const pc = [0, 1, 2].sort(() => rng() - 0.5);
-    B.power = [{ r: 1, c: pc[0] }, { r: 2, c: pc[1] }];
+    B.power = cfg.power || [{ r: 1, c: pc[0] }, { r: 2, c: pc[1] }];
+    B.ice = [];
     // Arena modu: can çarpanı
     const hpM = cfg.mod && cfg.mod.hp;
     if (hpM) units().forEach(f => { f.max = f.hp = Math.round(f.max * hpM); });
@@ -100,7 +103,7 @@
     if (cfg.mode !== 'pvp' && G.event().id === 'pyramid') B.A.list.forEach(f => { if (f.def.type === 'pyramid') f.atk = Math.round(f.atk * 1.25); });
     $('b-title').textContent = cfg.title || 'Savaş';
     $('battle').style.setProperty('--bbg', cfg.bg || 'linear-gradient(180deg, #2a7bff, #5fd0ff)');
-    $('b-auto').hidden = cfg.mode === 'pvp';
+    $('b-auto').hidden = cfg.mode === 'pvp' || !!cfg.noAuto;
     $('b-auto').textContent = 'Oto: Kapalı';
     $('b-quit').textContent = cfg.mode === 'pvp' ? 'Bitir' : 'Pes et';
     $('battle').hidden = false;
@@ -124,6 +127,8 @@
         <li><span class="ht-a">⟲</span><b>Döndür</b> (1 puan, turda bir kez): sıranın yanındaki oka dokun, o sıradaki herkes kayar. Rakibi menzile çek!</li>
         <li><span class="ht-p">⚡</span><b>Güç karesi:</b> üstünde duran küp %30 fazla vurur.</li>
         <li><b>Menzil:</b> Küp yanına, Piramit düz 2 kareye, Özel çevresindeki 8 kareye vurur.</li>
+        <li><b>Tür özellikleri:</b> Küp yanında dost varsa az hasar alır. Piramit uzaktan daha kritik vurur. Özel çevresindeki dostları güçlendirir.</li>
+        <li><b>Olaylar:</b> Her 3 turda tahtada bir şey olur: buz, süper güç, şifa, deprem…</li>
       </ul>`, [{ label: 'Başla!', cls: 'btn-yellow', onClick: next }], { replace: true });
   }
 
@@ -141,6 +146,11 @@
     const T = B[side];
     if (side === 'A') {
       B.round++;
+      B.ice = (B.ice || []).filter(x => x.until >= B.round);
+      // Bulmaca savaşı: tur sınırı
+      if (B.cfg.goal && B.round > B.cfg.goal) { say(`<b>Süre doldu!</b> ${B.cfg.goal} turda kazanamadın.`); await pace(900); return end(false); }
+      if (B.round >= 3 && B.round % 3 === 0 && !B.cfg.goal) await boardEvent();
+      if (!B || B.over) return;
       // Uzayan savaş: 12. turdan sonra arena daralır
       if (B.round >= 12) {
         say('<b>Arena daralıyor!</b> Tüm küpler can kaybediyor.');
@@ -162,6 +172,9 @@
       B.endTurn = null;
     } else {
       await pace(side === 'A' ? 300 : 500);
+      const boss = alive(side).find(f => f.rage);
+      if (boss) await bossTwist(boss);
+      if (!B || B.over) return;
       await aiTurn(side);
     }
     // sersemlik, sersemleyen takımın beklediği tur bitince geçer
@@ -174,8 +187,9 @@
   const canAct = (f) => f.hp > 0 && !f.stun;
   function moveCells(f) {
     if (!canAct(f) || B[f.side].ap < 1) return [];
-    return stepDirs.map(([dr, dc]) => ({ r: f.r + dr, c: f.c + dc })).filter(p => p.r >= 0 && p.r < ROWS && p.c >= 0 && p.c < COLS && !at(p.r, p.c));
+    return stepDirs.map(([dr, dc]) => ({ r: f.r + dr, c: f.c + dc })).filter(p => p.r >= 0 && p.r < ROWS && p.c >= 0 && p.c < COLS && !at(p.r, p.c) && !iceAt(p.r, p.c));
   }
+  const iceAt = (r, c) => (B.ice || []).some(x => x.r === r && x.c === c);
   function targets(f) {
     if (!canAct(f) || f.acted) return [];
     return alive(other(f.side)).filter(d => inRange(f, d));
@@ -183,6 +197,8 @@
   const canAttack = (f) => B[f.side].ap >= 2 && targets(f).length > 0;
   const skillReady = (f) => canAct(f) && !f.acted && f.cd === 0 && B[f.side].ap >= skillAP(f);
   const onPower = (f) => B.power.some(p => p.r === f.r && p.c === f.c);
+  const powerMul = () => (B.superRound === B.round ? 1.6 : 1.3);
+  const near = (a, b, cheb) => a !== b && (cheb ? Math.max(Math.abs(a.r - b.r), Math.abs(a.c - b.c)) === 1 : Math.abs(a.r - b.r) + Math.abs(a.c - b.c) === 1);
 
   // ---------- İnsan girişi ----------
   function tapCell(r, c) {
@@ -258,8 +274,15 @@
     if (!B || B.over) return 0;
     let dmg = a.atk * (0.88 + rng() * 0.24) * k * pm;
     const e = eff(a, d); dmg *= e;
-    if (onPower(a)) dmg *= 1.3;
-    const crit = rng() < (a.def.brand === 'zenko' ? 0.2 : 0.1) + ((B.cfg.mod && B.cfg.mod.crit) || 0);
+    if (onPower(a)) dmg *= powerMul();
+    // tür özellikleri
+    const far = typeKey(a) === 'piramit' && Math.abs(d.r - a.r) + Math.abs(d.c - a.c) === 2;
+    const aura = alive(a.side).some(x => typeKey(x) === 'ozel' && near(x, a, true));
+    const wall = typeKey(d) === 'kup' && alive(d.side).some(x => near(x, d, false));
+    if (aura) dmg *= 1.1;
+    if (wall) dmg *= 0.85;
+    if (a.rage) dmg *= 1.3;
+    const crit = rng() < (a.def.brand === 'zenko' ? 0.2 : 0.1) + ((B.cfg.mod && B.cfg.mod.crit) || 0) + (far ? 0.15 : 0);
     if (crit) dmg *= a.def.brand === 'vexa' ? 2 : 1.5;
     dmg = Math.max(1, Math.round(dmg));
     if (d.shield > 0) { dmg = Math.max(1, Math.round(dmg / 2)); d.shield--; }
@@ -267,6 +290,7 @@
     anim(a, 'lunge'); await pace(150);
     d.hp = Math.max(0, d.hp - dmg);
     anim(d, 'hit'); floatNum(d, '-' + dmg, false, big);
+    if (d.boss && !d.rage && d.hp > 0 && d.hp < d.max / 2) { d.rage = true; setTimeout(() => banner('Patron öfkelendi!', `${d.label} daha sert vuruyor ve her tur bir sırayı kendisi döndürecek!`, 'rage'), 300); }
     window.FX.burstAt(tokEl(d), big ? null : '#ffcc1f', big ? 24 : 10, big ? 7 : 4);
     if (big || dmg > d.max * 0.3) window.FX.shake($('battle'));
     if (navigator.vibrate && big) { try { navigator.vibrate(40); } catch (er) {} }
@@ -275,7 +299,9 @@
     if (crit) tags.push('kritik!');
     if (e > 1) tags.push('<b class="good">çok etkili</b>');
     else if (e < 1) tags.push('<span class="weak">pek etkili değil</span>');
-    if (onPower(a)) tags.push('⚡ güç karesi');
+    if (onPower(a)) tags.push(B.superRound === B.round ? '⚡ SÜPER güç' : '⚡ güç karesi');
+    if (aura) tags.push('aura');
+    if (wall) tags.push('kalkan duvarı');
     if (pm >= 1.5 && human) tags.push('<b class="good">mükemmel</b>');
     if (pm < 1 && vsHuman) tags.push('<b class="good">blokladın</b>');
     say(`<b>${esc(a.label)}</b> ${label}: ${dmg} hasar${tags.length ? ' · ' + tags.join(' · ') : ''}`);
@@ -283,7 +309,7 @@
   }
   async function doAttack(a, d) {
     B[a.side].ap -= 2; a.acted = true;
-    await strike(a, d, typeKey(a) === 'piramit' && Math.abs(d.r - a.r) + Math.abs(d.c - a.c) === 2 ? 0.85 : 1, 'saldırdı');
+    await strike(a, d, 1, 'saldırdı');
     if (!B) return;
     renderAll(); snap('saldırı');
     await pace(420);
@@ -344,6 +370,59 @@
     return false;
   }
 
+  // ---------- Tahta olayları (her 3 turda bir) ----------
+  function banner(title, text, kind) {
+    const el = $('b-event');
+    if (!el) return;
+    el.className = 'b-event ' + (kind || '');
+    el.innerHTML = `<b>${esc(title)}</b><small>${esc(text)}</small>`;
+    el.hidden = false;
+    el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+    Snd.reveal(2);
+    clearTimeout(banner.t); banner.t = setTimeout(() => { el.hidden = true; }, 2600);
+  }
+  const emptyCells = (rows) => { const out = []; rows.forEach(r => { for (let c = 0; c < COLS; c++) if (!at(r, c) && !iceAt(r, c)) out.push({ r, c }); }); return out; };
+  async function boardEvent() {
+    const kind = G.pickOne(['ice', 'super', 'heal', 'shift', 'move']);
+    if (kind === 'ice') {
+      const cells = emptyCells([1, 2]).sort(() => rng() - 0.5).slice(0, 2);
+      if (!cells.length) return boardEvent2('super');
+      cells.forEach(p => B.ice.push({ r: p.r, c: p.c, until: B.round + 2 }));
+      banner('Buzlanma!', 'Buzlu karelere 2 tur boyunca girilemez.', 'ice');
+    } else boardEvent2(kind);
+    renderAll(); snap('olay');
+    await pace(1300);
+  }
+  function boardEvent2(kind) {
+    if (kind === 'super') { B.superRound = B.round; banner('Süper güç!', 'Bu tur ⚡ güç kareleri %60 fazla vurduruyor.', 'super'); }
+    else if (kind === 'heal') {
+      units().filter(f => f.hp > 0).forEach(f => { const v = Math.min(f.max - f.hp, Math.round(f.max * 0.1)); if (v) { f.hp += v; floatNum(f, '+' + v, true); } });
+      banner('Şifa yağmuru!', 'Tüm küpler canının %10’unu yeniledi.', 'heal');
+    } else if (kind === 'shift') {
+      [[1, 1], [2, -1]].forEach(([r, d]) => units().filter(f => f.hp > 0 && f.r === r).forEach(f => { f.c = (f.c + d + COLS) % COLS; }));
+      banner('Deprem!', 'Ortadaki iki sıra kendiliğinden döndü.', 'shift');
+    } else {
+      const cols = [0, 1, 2].sort(() => rng() - 0.5);
+      B.power = [{ r: 1, c: cols[0] }, { r: 2, c: cols[1] }];
+      banner('Güç kareleri yer değiştirdi!', 'Yeni ⚡ karelere koş.', 'super');
+    }
+  }
+  // Öfkeli patron her turunun başında oyuncunun en kalabalık sırasını döndürür (puan harcamaz)
+  async function bossTwist(boss) {
+    const foe = other(boss.side);
+    let best = null;
+    for (let r = 0; r < ROWS; r++) { const n = alive(foe).filter(f => f.r === r).length; if (n && (!best || n > best.n)) best = { r, n }; }
+    if (!best) return;
+    const d = rng() < 0.5 ? 1 : -1;
+    units().filter(f => f.hp > 0 && f.r === best.r).forEach(f => { f.c = (f.c + d + COLS) % COLS; });
+    const row = $('bd').querySelector(`.b-rowfx[data-r="${best.r}"]`);
+    if (row) { row.classList.remove('go'); void row.offsetWidth; row.classList.add('go'); }
+    anim(boss, 'lunge'); Snd.skill();
+    say(`<b>${esc(boss.label)}</b> öfkeyle ${best.r + 1}. sırayı döndürdü!`);
+    renderAll(); snap('patron');
+    await pace(700);
+  }
+
   // ---------- Yapay zekâ ----------
   function bfs(f) {
     // f'nin boş karelerden yürüyerek ulaşabileceği kareler ve adım sayısı
@@ -353,7 +432,7 @@
       if (d >= 3) continue;
       for (const [dr, dc] of stepDirs) {
         const nr = r + dr, nc = c + dc, k = nr * 9 + nc;
-        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS || seen.has(k) || at(nr, nc)) continue;
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS || seen.has(k) || at(nr, nc) || iceAt(nr, nc)) continue;
         seen.set(k, d + 1); q.push([nr, nc, d + 1]); out.push({ r: nr, c: nc, d: d + 1 });
       }
     }
@@ -625,6 +704,9 @@
     grid.querySelectorAll('.cell').forEach(c => {
       const r = +c.dataset.r, cc = +c.dataset.c;
       c.classList.toggle('mv', mv.some(p => p.r === r && p.c === cc));
+      c.classList.toggle('pw', B.power.some(p => p.r === r && p.c === cc));
+      c.classList.toggle('super', B.superRound === B.round && B.power.some(p => p.r === r && p.c === cc));
+      c.classList.toggle('ice', iceAt(r, cc));
       c.classList.toggle('zone', !!sel && human && !B.aim && ROLE[typeKey(sel)].can(r - sel.r, cc - sel.c));
     });
     units().forEach(f => {
@@ -636,6 +718,7 @@
       t.classList.toggle('tg', tg.includes(f));
       t.classList.toggle('stun', !!f.stun);
       t.classList.toggle('shield', f.shield > 0);
+      t.classList.toggle('rage', !!f.rage);
       t.classList.toggle('done', f.side === side && human && f.acted && !(moveCells(f).length && T.ap));
       t.classList.toggle('can', f.side === side && human && canAct(f));
       const pct = Math.max(0, f.hp / f.max * 100);
@@ -655,7 +738,7 @@
     const skb = $('act-skill');
     if (sel && human) {
       const sk = D.SKILLS[sel.def.skill], ty = D.TYPES[typeKey(sel)], ro = ROLE[typeKey(sel)];
-      $('b-sel').innerHTML = `<b>${esc(sel.label)}</b><small>${ty.name} ${ro.name} · ${ro.range} · ${sel.hp}/${sel.max} can · Saldırı ${sel.atk}${onPower(sel) ? ' · ⚡' : ''}</small>`;
+      $('b-sel').innerHTML = `<b>${esc(sel.label)}</b><small>${ty.name} ${ro.name} · ${ro.range} · ${sel.hp}/${sel.max} can · Saldırı ${sel.atk}${onPower(sel) ? ' · ⚡' : ''}</small><small class="b-pass">${esc(ro.passive)}</small>`;
       skb.disabled = !skillReady(sel) || B.busy;
       skb.innerHTML = `<span class="cost-drop">${skillAP(sel)}</span>${esc(sk.name)}<small>${sel.cd ? `${sel.cd} tur sonra hazır` : sel.acted ? 'Bu tur hamlesini yaptı' : esc(sk.desc)}</small>`;
     } else {
