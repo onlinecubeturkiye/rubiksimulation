@@ -280,10 +280,10 @@
 
   function renderHeader() {
     const S = G.S;
-    $('coins').textContent = S.coins;
+    $('coins').textContent = G.short(S.coins);
     $('lvl-num').textContent = S.level;
     $('hdr-name').textContent = S.name;
-    $('hdr-tr').textContent = S.trophies;
+    $('hdr-tr').textContent = G.short(S.trophies);
     const pct = Math.min(100, S.xp / G.xpNeed(S.level) * 100);
     document.querySelector('.lvl-badge').style.setProperty('--p', pct + '%');
     $('hdr-xp').style.width = pct + '%';
@@ -301,6 +301,14 @@
 
   }
   G.renderHeader = renderHeader;
+  // Geri sayımlar: sayfayı baştan çizmeden yalnız süre yazılarını günceller
+  G.fmtLeft = (ms) => { ms = Math.max(0, ms); const m = Math.ceil(ms / 60000); return m >= 60 ? `${Math.floor(m / 60)} sa ${m % 60 ? (m % 60) + ' dk' : ''}`.trim() : ms < 60000 ? `${Math.ceil(ms / 1000)} sn` : `${m} dk`; };
+  G.tickTimers = function (root) {
+    (root || document).querySelectorAll('[data-end]').forEach(el => { el.textContent = (el.dataset.pre || '') + G.fmtLeft(+el.dataset.end - Date.now()); });
+    (root || document).querySelectorAll('[data-rush]').forEach(el => { el.textContent = `Hemen bitir (${Math.max(10, Math.ceil(Math.max(0, +el.dataset.rush - Date.now()) / 60000 * 1.5))})`; });
+  };
+  // Büyük sayılar üst barda kısalır: 14845 → 14.8K
+  G.short = (n) => (n >= 100000 ? Math.floor(n / 1000) + 'K' : n >= 10000 ? (Math.floor(n / 100) / 10) + 'K' : String(n));
   G.GIFT_MS = 20 * 3600 * 1000;
   G.FREE_MS = 3 * 3600 * 1000;
 

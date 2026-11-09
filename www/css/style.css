@@ -863,3 +863,35 @@ main:has(.tab-home:not([hidden])) { display: flex; flex-direction: column; }
 .bld-time { font-family: var(--font-display); color: var(--gold); text-shadow: var(--outline); }
 .bld-max { font-family: var(--font-display); font-size: 0.8rem; color: var(--green); text-shadow: var(--outline); }
 .solve-head .back { width: 40px; height: 40px; }
+
+/* ===== v2.8: kayma düzeltmeleri ===== */
+/* Uygulama hiçbir zaman ekrandan geniş olmasın (uzun ad / büyük sayılar üst barı genişletiyordu) */
+.app { grid-template-columns: minmax(0, 1fr); width: 100%; }
+.top { min-width: 0; }
+.player { flex: 1 1 auto; min-width: 0; }
+.player-info { flex: 1; }
+.player-info b { max-width: 100%; }
+.wallet { flex: none; gap: 4px; }
+.res { padding: 0 10px 0 22px; margin-left: 14px; font-size: 1rem; }
+@media (max-width: 380px) { .xp { width: 72px; } .res { padding: 0 8px 0 20px; font-size: 0.95rem; } }
+
+/* Macera üst kartları dar ekrana sığsın */
+.adv-top { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.chest-card b, .streak-card b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chest-card small, .streak-card small { line-height: 1.25; }
+.keys { gap: 2px; width: 100%; }
+.keys i { flex: 1; max-width: 16px; min-width: 4px; height: 8px; border-width: 1.5px; }
+/* Kilitli dünya yazısı yolların üstüne binmesin */
+.world.locked .lock { position: relative; top: auto; left: auto; right: auto; margin: 8px 12px 0; }
+
+/* Koleksiyon kartı: sol üst enerji, sağ üst seviye, altında adet; marka küpün altında ortada */
+.card { display: flex; flex-direction: column; align-items: center; }
+.card .lv { top: 5px; right: 5px; left: auto; bottom: auto; transform: none; background: var(--ink); color: var(--gold); border-color: var(--ink); text-shadow: none; }
+.card .cnt { top: 30px; right: 5px; }
+.card .bm.sm { position: static; margin: -6px 0 4px; z-index: 1; }
+.card .ty { display: none; }
+.card .nm { min-height: 2.5em; padding: 4px 4px 6px; margin-top: auto; }
+.card.in-team::after { content: "TAKIM"; top: auto; bottom: calc(2.5em + 18px); left: 4px; right: auto; transform: none; padding: 0 5px; border: 2px solid var(--ink); border-radius: 6px; font-size: 0.55rem; font-family: var(--font-display); }
+.chest-card div, .streak-card div { grid-template-columns: minmax(0, 1fr); }
+.card.in-team { overflow: visible; box-shadow: 0 0 0 2px var(--gold), 0 4px 0 var(--ink); }
+.card.in-team::after { top: -8px; bottom: auto; left: 50%; right: auto; transform: translateX(-50%); z-index: 3; line-height: 1.3; }

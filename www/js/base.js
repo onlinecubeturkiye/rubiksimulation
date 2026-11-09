@@ -36,7 +36,7 @@
     const n = mined(); if (n < 1) return G.toast('Henüz jeton birikmedi');
     st().mine.t = Date.now();
     G.addCoins(n); G.coinFloat(n); window.FX.coins(Math.min(12, 3 + Math.floor(n / 30)), btn);
-    G.save(); render();
+    G.save(); G.renderBase();
   }
 
   // ---------- Yükseltme ----------
@@ -62,13 +62,13 @@
     G.S.coins -= c.coins; G.coinFloat(-c.coins);
     if (k !== 'mine' && !s[k]) s[k] = { lv: 0 };
     s.build = { k, end: Date.now() + c.mins * 60000 };
-    G.save(); Snd.click(); render();
+    G.save(); Snd.click(); G.renderBase();
   }
   function rush() {
     const b = st().build; if (!b) return;
     const cost = rushCost(b.end - Date.now());
     if (G.S.coins < cost) return G.toast(`Yeterli jeton yok (${cost} gerekli)`);
-    G.S.coins -= cost; G.coinFloat(-cost); b.end = Date.now(); checkBuild(); render();
+    G.S.coins -= cost; G.coinFloat(-cost); b.end = Date.now(); checkBuild(); G.renderBase();
   }
 
   // ---------- Bina çizimi (izometrik) ----------
@@ -108,8 +108,8 @@
     const S = G.S, s = st();
     const b = s.build;
     $('builder').innerHTML = `<svg viewBox="0 0 48 48" class="robot" aria-hidden="true"><rect x="10" y="14" width="28" height="22" rx="6" fill="#b9c5ff" stroke="#0b1033" stroke-width="3"/><circle cx="19" cy="25" r="4" fill="#0b1033"/><circle cx="29" cy="25" r="4" fill="#0b1033"/><path d="M24 14V7" stroke="#0b1033" stroke-width="3"/><circle cx="24" cy="6" r="3" fill="#ff4d5e" stroke="#0b1033" stroke-width="2"/><rect x="14" y="36" width="20" height="6" rx="2" fill="#7b4dff" stroke="#0b1033" stroke-width="2.5"/></svg>
-      <div><b>Usta Robot</b><small>${b ? `${esc(B[b.k].name)} yükseltiliyor · ${fmt(b.end - Date.now())}` : 'Boşta. Bir bina yükselt!'}</small></div>
-      ${b ? `<button class="btn btn-small btn-yellow" id="rush-btn">Hemen bitir (${rushCost(b.end - Date.now())})</button>` : ''}`;
+      <div><b>Usta Robot</b><small>${b ? `${esc(B[b.k].name)} yükseltiliyor · <span data-end="${b.end}">${fmt(b.end - Date.now())}</span>` : 'Boşta. Bir bina yükselt!'}</small></div>
+      ${b ? `<button class="btn btn-small btn-yellow" id="rush-btn" data-rush="${b.end}">Hemen bitir (${rushCost(b.end - Date.now())})</button>` : ''}`;
     if (b) $('rush-btn').onclick = rush;
     const v = $('village'); v.innerHTML = '';
     ORDER.forEach(k => {
@@ -125,7 +125,7 @@
         else eff = `<small>${l ? `Şu an: ${k === 'lab' ? `+%${l * 3} güç` : k === 'gym' ? `+%${l * 10} XP` : `%${l * 10} hızlı`}` : esc(d.desc)}</small>`;
         status = stars + eff;
         const c = nextCost(k);
-        if (b && b.k === k) actions += `<span class="bld-time">${fmt(b.end - Date.now())}</span>`;
+        if (b && b.k === k) actions += `<span class="bld-time" data-end="${b.end}">${fmt(b.end - Date.now())}</span>`;
         else if (c) actions += `<button class="btn btn-small btn-yellow" data-act="up" ${b || S.coins < c.coins ? 'disabled' : ''}><i class="coin"></i>${c.coins} · ${fmt(c.mins * 60000)}</button>`;
         else actions += '<span class="bld-max">EN ÜST</span>';
       }
@@ -141,5 +141,14 @@
   }
   G.renderBase = render;
   G.baseNeedsAttention = () => { checkBuild(); return G.mineReady() || (!st().build && ORDER.some(k => B[k].cost && G.S.level >= B[k].unlock && nextCost(k) && G.S.coins >= nextCost(k).coins)); };
-  setInterval(() => { if (G.current === 'base' && !G.isModalOpen()) render(); else checkBuild(); }, 1000);
+  // Atölye yalnız durum değişince yeniden çizilir (bina bitti, maden doldu, seviye/jeton değişti)
+  const sig = () => { const s = st(); return [lv('mine'), lv('gym'), lv('depot'), lv('lab'), s.build && s.build.k, mined(), G.S.coins, G.S.level].join('|'); };
+  let lastSig = '';
+  const origRender = render;
+  G.renderBase = function () { origRender(); lastSig = sig(); };
+  setInterval(() => {
+    checkBuild();
+    if (G.current !== 'base') return;
+    if (sig() !== lastSig) { if (!G.isModalOpen()) G.renderBase(); } else G.tickTimers($('tab-base'));
+  }, 1000);
 })();

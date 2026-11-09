@@ -87,7 +87,7 @@
         <button class="btn btn-small" id="set-intro">Nasıl oynanır?</button>
         <button class="btn btn-small danger" id="set-reset">Oyunu sıfırla</button>
       </div>
-      <p class="note">Küp Arena v2.7 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
+      <p class="note">Küp Arena v2.8 · Oyundaki küp markaları (TOPAÇ, KAIRO, HAYATE, TORVA, ZENKO, VEXA) kurgusaldır; gerçek markalarla ilgisi yoktur.</p>`, [{ label: 'Kapat' }], { replace: true, wide: true });
     if (!body) return;
     if (G.auth.enabled) {
       if ($('ra-in')) $('ra-in').onclick = () => G.auth.openLogin('profile');

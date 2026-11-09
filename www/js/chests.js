@@ -133,7 +133,7 @@
       else {
         const def = D.CHESTS[c.type];
         const info = st === 'ready' ? '<b class="sc-open">AÇ!</b>'
-          : st === 'unlocking' ? `<b class="sc-time">${fmt(c.end - now())}</b>`
+          : st === 'unlocking' ? `<b class="sc-time" data-end="${c.end}">${fmt(c.end - now())}</b>`
           : `<small>${fmt(boxMs(def))}</small><b class="sc-unlock">Aç</b>`;
         b.innerHTML = `${G.chestSVG(c.type)}<span class="box-name">${esc(def.short)}</span>${info}`;
       }
@@ -142,7 +142,15 @@
     });
   }
   G.renderChestSlots = renderSlots;
-  setInterval(() => { if (G.current === 'home' && !G.isModalOpen()) renderSlots(); }, 1000);
+  // Raflar yalnız durum değişince yeniden çizilir; geri sayım yerinde güncellenir
+  const sig = () => slots().map(c => (c ? c.type + stateOf(c) : '-')).join('|');
+  let lastSig = '';
+  const origRender = renderSlots;
+  G.renderChestSlots = function () { lastSig = sig(); origRender(); };
+  setInterval(() => {
+    if (G.current !== 'home') return;
+    if (sig() !== lastSig) { G.renderChestSlots(); G.renderHeader(); } else G.tickTimers($('chest-row'));
+  }, 1000);
 
   function tapSlot(i) {
     const list = slots(), c = list[i], st = stateOf(c);

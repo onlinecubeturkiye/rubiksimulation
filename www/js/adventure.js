@@ -72,8 +72,8 @@
           <div class="world-side"><span class="world-stars">★ ${got}/18</span>
             <span class="world-reward" title="Boss ödülü"><canvas></canvas>${done ? 'Alındı' : 'Ödül'}</span></div>
         </div>
-        <div class="path"></div>
-        ${open ? '' : `<div class="lock">Kilitli: önce ${esc(D.WORLDS[wi - 1].boss.name)}’ni yen</div>`}`;
+        ${open ? '' : `<div class="lock">Kilitli: önce ${esc(D.WORLDS[wi - 1].boss.name)}’ni yen</div>`}
+        <div class="path"></div>`;
       const path = card.querySelector('.path');
       // Kıvrılan yol: düğmeler sağa sola dağılır, aralarında kalın bir patika çizilir.
       const PTS = [[24, 48], [72, 118], [34, 190], [74, 262], [28, 334], [60, 404]];
