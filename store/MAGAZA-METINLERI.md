@@ -26,7 +26,7 @@ Karton kutudan Şampiyon Kutusu'na kadar her kutudan sürpriz küpler çıkar. Y
 Üç küplük takımını seç, enerji topla, güç çubuğunu tam zamanında durdur ve özel yeteneklerle rakibini alt et. Savunma anında doğru zamanda dokun, hasarı azalt!
 
 🗺️ MACERA
-6 farklı dünyada 36 bölüm, patron savaşları ve yıldız toplama. Sonsuz Kule'de ne kadar yükselebileceğini dene.
+8 farklı dünyada 48 bölüm, patron savaşları ve yıldız toplama. Sonsuz Kule'de ne kadar yükselebileceğini dene.
 
 🏆 ARENA VE RÜTBELER
 Bronz'dan Efsane'ye 15 rütbe. Kupa kazan, Kupa Yolu ödüllerini aç, her sezon yeniden zirveye oyna. Her birkaç saatte değişen oyun modları: Enerji Fırtınası, Kritik Gecesi, Dev Küpler ve daha fazlası.
